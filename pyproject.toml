@@ -11,6 +11,8 @@ dependencies = [
     "pillow>=10.0",
     # 0.7 起 opencv 不再是 extra 而是直接依赖，别再写 [opencv]
     "scenedetect>=0.7",
+    # TTS 兜底引擎（免 Key，中文音色好）；网关开了 audio/speech 会自动优先走网关
+    "edge-tts>=6.1",
 ]
 
 [project.scripts]

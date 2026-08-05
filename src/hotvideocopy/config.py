@@ -63,6 +63,7 @@ class Config:
     hf_token: str
     tts_model: str
     tts_voice: str
+    tts_engine: str
     img_concurrency: int
     proxy: str
 
@@ -85,6 +86,8 @@ class Config:
             hf_token=_env("HVC_HF_TOKEN", "HF_TOKEN", "HUGGINGFACE_TOKEN"),
             tts_model=_env("HVC_TTS_MODEL", default="gpt-4o-mini-tts"),
             tts_voice=_env("HVC_TTS_VOICE", default="alloy"),
+            # auto=先试网关 OpenAI 协议，404 落 edge-tts；也可强制 api / edge
+            tts_engine=_env("HVC_TTS_ENGINE", default="auto"),
             # 出图并发闸默认 1（串行）。实测中转对并发极敏感，一次多发就大面积 502。
             img_concurrency=max(1, min(6, int(_env("HVC_IMG_CONCURRENCY", default="1") or 1))),
             proxy=_env("HVC_PROXY", "HTTPS_PROXY", "https_proxy"),

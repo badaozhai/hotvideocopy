@@ -190,10 +190,12 @@ async def gen_video_extend(
 @mcp.tool()
 async def tts(text: str, voice: str = "", project_id: str = "", name: str = "",
               speed: float = 1.0, model: str = "") -> dict:
-    """文字转语音（网关 /v1/audio/speech），落 gen/tts/<name>.mp3。
+    """文字转语音，落 gen/tts/<name>.mp3。双引擎：网关 OpenAI 协议优先，404 自动落 edge-tts。
 
-    返回带 duration——写 timeline 排人声落点全靠它。
-    voice/model 默认走 HVC_TTS_VOICE / HVC_TTS_MODEL。
+    返回带 duration 和 engine——写 timeline 排人声落点全靠 duration。
+    voice 认两套写法：OpenAI 名（alloy/echo/onyx/nova/shimmer，会映射到对应中文音色）
+    或直接 edge 音色名（zh-CN-YunxiNeural 男口播 / zh-CN-XiaoxiaoNeural 女声）。
+    speed 1.1–1.3 是抖音口播常用语速。
     逐句合成（一句一个文件），装配时按 at 落点铺，比整段合成好对时间轴。
     """
     return await speech.tts(text, voice, project_id, name, speed, model)
