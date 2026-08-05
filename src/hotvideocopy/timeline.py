@@ -167,8 +167,10 @@ async def assemble(timeline: str) -> dict:
         fparts.append(f"[{j + 1}:a]{','.join(chain)}[a{j}]")
         amaps.append(f"[a{j}]")
     if tracks:
+        # apad=whole_dur 会自己终止；千万别写 apad,atrim=0:D——atrim 不向上游发 EOF，
+        # apad 无限产静音，muxer 永远收不到流结束，ffmpeg 100% CPU 空转（实案）
         fparts.append(f"{''.join(amaps)}amix=inputs={len(tracks)}:duration=longest:normalize=0,"
-                      f"apad,atrim=0:{vdur:.3f}[aout]")
+                      f"apad=whole_dur={vdur:.3f}[aout]")
 
     if subs:
         sp = _resolve_asset(subs, pid)

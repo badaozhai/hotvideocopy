@@ -64,6 +64,9 @@ async def check_pure() -> None:
     object.__setattr__(C.CONFIG, "video_status_base_url", "https://api.x.ai/v1")
     assert V._status_endpoint("req_9") == "https://api.x.ai/v1/videos/req_9"
     object.__setattr__(C.CONFIG, "video_status_base_url", "")
+    # 中转返回相对路径的 video.url（实案：/v1/videos/<id>/content）要拼回查询域名
+    assert V._absolutize("/v1/videos/r1/content") == "https://gw.example.com/v1/videos/r1/content"
+    assert V._absolutize("https://imgen.x.ai/tmp/x.mp4") == "https://imgen.x.ai/tmp/x.mp4"
     assert V.pick_request_id({"data": {"id": "r1"}}) == "r1"
     assert V.pick_video_url({"data": [{"url": "https://u"}]}) == "https://u"
     assert V.pick_status({"video": {"status": "PENDING"}}) == "pending"

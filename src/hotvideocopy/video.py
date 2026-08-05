@@ -27,6 +27,7 @@ import asyncio
 import base64
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 
@@ -81,6 +82,22 @@ def _status_endpoint(request_id: str) -> str:
     """状态查询端点。有的中转只代理「发起」，查询要直连 xAI（HVC_VIDEO_STATUS_BASE_URL）。"""
     base = CONFIG.video_status_base_url or CONFIG.video_base_url
     return _endpoint_on(base, "generations").rsplit("/", 1)[0] + "/" + request_id
+
+
+def _absolutize(url: str) -> str:
+    """中转返回的 video.url 可能是相对路径（/v1/videos/<id>/content），拼回查询域名。"""
+    u = str(url or "").strip()
+    if not u or u.startswith(("http://", "https://")):
+        return u
+    p = urlparse(_status_endpoint("x"))
+    return f"{p.scheme}://{p.netloc}" + (u if u.startswith("/") else "/" + u)
+
+
+def _same_host(url: str, other: str) -> bool:
+    try:
+        return urlparse(url).netloc == urlparse(other).netloc
+    except ValueError:
+        return False
 
 
 def _pick(obj: dict, paths: list[str]) -> str:
@@ -255,7 +272,7 @@ async def get(request_id: str) -> dict:
 
     j = resp.json() or {}
     st = pick_status(j)
-    url = pick_video_url(j)
+    url = _absolutize(pick_video_url(j))
 
     if url and (not st or st in DONE_STATES):
         return await fetch_result(request_id, remote_url=url)
@@ -275,11 +292,16 @@ async def fetch_result(request_id: str, remote_url: str) -> dict:
     name = slug(job.get("name") or request_id, "clip")
     out = sub(pid, "gen", "clips", f"{name}.mp4")
 
+    # 从中转自己的 /content 端点下载要带鉴权；外部临时链接（imgen 等）不带
+    dl_headers = {"User-Agent": "Mozilla/5.0"}
+    if _same_host(remote_url, _status_endpoint("x")):
+        dl_headers.update(auth_headers(_key(), json_body=False))
+
     last_err = ""
     async with _client() as c:
         for attempt in range(1, 6):
             try:
-                r = await c.get(remote_url, headers={"User-Agent": "Mozilla/5.0"},
+                r = await c.get(remote_url, headers=dl_headers,
                                 timeout=httpx.Timeout(300.0), follow_redirects=True)
                 if r.status_code != 200:
                     last_err = f"视频下载失败 HTTP {r.status_code}"
