@@ -155,7 +155,10 @@ async def gen_video_start(
       原片镜头是 2.37s 这种小数时**向上取整**，装配时再用 ffmpeg 精确裁到 DNA 时间轴。
     - resolution：480p(默认)/720p/1080p，1080p 仅 T2V/I2V。
 
-    发起后去干别的，隔一阵用 gen_video_get 查。生成的音轨后面整条丢弃，人声 BGM 全后期铺。
+    **对白戏**：prompt 里写 `says in Chinese: "台词"` 可让角色开口说中文（带口型），
+    生成后必须用 transcribe 回验台词。片段自带对白与环境音——对白/动作镜原声全量保留，
+    过场镜 -8~-10dB 垫底（timeline.audio 引用片段自身即可），别再整条丢弃。
+    发起后去干别的，隔一阵用 gen_video_get 查。
     """
     return await video_api.start(prompt, project_id, image, reference_images,
                                  duration, aspect, resolution, model, name)
