@@ -44,8 +44,13 @@ async def transcribe(video: str, language: str = "", model: str = "",
     adir.mkdir(exist_ok=True)
     notes: list[str] = []
 
+    # 中间产物按文件名分键——同一项目里转写生成片段时，不能复用源片的缓存（实案）
+    from .workspace import slug as _slug
+    key = _slug(path.stem, "audio")
+    is_source = path.name == "source.mp4"
+
     # 1) 抽全质量音轨（demucs 吃 44.1k 立体声效果最好，别直接给它 16k mono）
-    audio = adir / "audio.wav"
+    audio = adir / f"{key}.wav"
     if not audio.is_file():
         rc, _, err = await run(ffmpeg_bin(), "-y", "-i", str(path), "-vn",
                                "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le",
@@ -57,7 +62,7 @@ async def transcribe(video: str, language: str = "", model: str = "",
     wsrc, engine_vocals = audio, "raw"
     if vocals:
         if _has("demucs"):
-            voc = adir / "demucs" / "htdemucs" / "audio" / "vocals.wav"
+            voc = adir / "demucs" / "htdemucs" / key / "vocals.wav"
             if not voc.is_file():
                 rc, _, err = await run(sys.executable, "-m", "demucs", "--two-stems", "vocals",
                                        "-n", "htdemucs", "-o", str(adir / "demucs"),
@@ -71,7 +76,7 @@ async def transcribe(video: str, language: str = "", model: str = "",
                          "（BGM 重的片建议装：pip install -e '.[asr]'）")
 
     # 3) 重采样成 whisper/pyannote 的 16k mono
-    wav16 = adir / ("asr16k_vocals.wav" if engine_vocals != "raw" else "asr16k_raw.wav")
+    wav16 = adir / (f"{key}_16k_vocals.wav" if engine_vocals != "raw" else f"{key}_16k_raw.wav")
     if not wav16.is_file():
         rc, _, err = await run(ffmpeg_bin(), "-y", "-i", str(wsrc), "-ac", "1", "-ar", "16000",
                                "-c:a", "pcm_s16le", str(wav16), timeout=600)
@@ -111,7 +116,9 @@ async def transcribe(video: str, language: str = "", model: str = "",
         "notes": notes,
     }
     if pid != "scratch":
-        result["file"] = write_json(sub(pid, "transcript.json"), result)
+        # 只有源片的转写才占 transcript.json 正主位；其它文件（生成片段等）落 asr/ 下
+        dest = sub(pid, "transcript.json") if is_source else adir / f"{key}.transcript.json"
+        result["file"] = write_json(dest, result)
     return result
 
 
