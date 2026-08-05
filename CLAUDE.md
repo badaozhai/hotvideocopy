@@ -86,7 +86,8 @@ workspace/<project_id>/
 
 | 工具 | 说明 |
 |---|---|
-| `douyin_fetch(url)` | yt-dlp 下载无水印 + meta，落盘到工作区 |
+| `douyin_fetch(url)` | 下载无水印 + meta，落盘到工作区 |
+| `video_import(path)` | 本地视频（录屏/相册导出）导入当源片，产出与 douyin_fetch 对齐 |
 | `scene_split(video, threshold=27)` | PySceneDetect ContentDetector，产出 shots.json |
 | `get_frames(video, timestamps[])` | **返回 ImageContent**，Claude 直接看 |
 | `transcribe(video)` | 分离人声后转写，带时间戳；说话人分离用 pyannote |
@@ -168,10 +169,10 @@ TTS 走 IndexTTS-2 / CosyVoice 2（本地，可音色克隆），或 xAI TTS + C
 
 **第一阶段：只做解构链路**（先跑通，别急着往下推）
 
-- [ ] `douyin_fetch`
-- [ ] `scene_split`
-- [ ] `get_frames`
-- [ ] `transcribe`
+- [x] `douyin_fetch`（另有 `video_import` 收本地录屏/任意视频，源不限于抖音）
+- [x] `scene_split`
+- [x] `get_frames`
+- [x] `transcribe`
 - [ ] 手工验证：能产出人类可读的分镜表
 
 DNA 的质量决定后面一切。这一步做扎实，它本身就是个能用的工具。

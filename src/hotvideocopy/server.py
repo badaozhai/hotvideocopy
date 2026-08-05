@@ -11,7 +11,7 @@ from __future__ import annotations
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ImageContent, TextContent
 
-from . import __version__, douyin, images, shots
+from . import __version__, asr, douyin, images, ingest, shots
 from . import video as video_api  # 别直接 import video：多个工具有叫 video 的参数，会遮蔽
 from .config import CONFIG
 from .media import probe
@@ -31,6 +31,18 @@ async def douyin_fetch(url: str, project_id: str = "") -> dict:
     产出：source.mp4 + meta.json（时长/分辨率/帧率/作者/点赞等）。
     """
     return await douyin.fetch(url, project_id)
+
+
+@mcp.tool()
+async def video_import(path: str, project_id: str = "", title: str = "") -> dict:
+    """导入本地视频当源片——不必非从抖音下，手机录屏、相册导出的 MP4/MOV 都行。
+
+    mp4 直接拷入工作区；mov/mkv 等先无损 remux，不行再转码保底。
+    project_id 省略时按文件名生成 `local_<文件名>`。产出与 douyin_fetch 对齐：
+    source.mp4 + meta.json，后续解构链路完全一样。
+    录屏带系统 UI（状态栏/进度条）会污染画面理解，需要裁的话直接 Bash ffmpeg crop。
+    """
+    return await ingest.import_local(path, project_id, title)
 
 
 @mcp.tool()
@@ -62,6 +74,21 @@ async def get_frames(video: str, timestamps: list[float], max_width: int = 640) 
     )]
     out += [ImageContent(type="image", data=shots.to_b64(raw), mimeType="image/jpeg") for _, raw in batch]
     return out
+
+
+@mcp.tool()
+async def transcribe(video: str, language: str = "", model: str = "",
+                     vocals: bool = True, diarize: bool = True) -> dict:
+    """转写 → transcript.json。带时间戳分段；装了 pyannote 且有 HF_TOKEN 时附说话人。
+
+    链路：抽音轨 → demucs 人声分离（装了才走）→ faster-whisper → pyannote 说话人分离。
+    依赖装到哪层用哪层，缺哪层会写进返回的 notes，不会整个失败。
+    - language 默认自动检测并按中文加引导词；英文片显式传 "en"
+    - model 默认走 HVC_WHISPER_MODEL（large-v3）；试跑可传 "medium" 提速
+    - 中间产物在 workspace/<pid>/asr/，重跑不重算（demucs 一次几分钟）
+    转写是 CPU 重活，一分钟的片可能要跑一两分钟——发起后别急。
+    """
+    return await asr.transcribe(video, language, model, vocals, diarize)
 
 
 @mcp.tool()
@@ -166,6 +193,8 @@ def workspace_info() -> dict:
         "grok_key": "已设置" if CONFIG.grok_key else "(未设置 HVC_GROK_KEY)",
         "image_model": CONFIG.image_model,
         "video_model": CONFIG.video_model,
+        "whisper_model": CONFIG.whisper_model,
+        "hf_token": "已设置" if CONFIG.hf_token else "(未设置，pyannote 说话人分离不可用)",
         "img_concurrency": CONFIG.img_concurrency,
     }
 

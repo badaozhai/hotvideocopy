@@ -14,6 +14,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -94,8 +95,19 @@ async def check_stdio() -> None:
         print(f"  server: {info.server_info.name} v{info.server_info.version or '?'}")
 
         tools = (await s.list_tools()).tools
-        assert len(tools) == 10, [t.name for t in tools]
+        assert len(tools) == 12, [t.name for t in tools]
         print(f"  tools({len(tools)}): " + ", ".join(t.name for t in tools))
+
+        # 本地导入：造个 .mov 走 remux 路径，产出要与 douyin_fetch 完全对齐
+        mov = Path(tempfile.gettempdir()) / "hvc_smoke_upload.mov"
+        subprocess.run(["ffmpeg", "-y", "-i", str(ROOT / "workspace" / PID / "source.mp4"),
+                        "-c", "copy", str(mov)], check=True, capture_output=True)
+        res = await s.call_tool("video_import", {"path": str(mov), "project_id": "smoke_import"})
+        meta = json.loads(res.content[0].text)
+        assert meta["platform"] == "local" and meta["duration"] > 5.5, meta
+        assert (ROOT / "workspace" / "smoke_import" / "source.mp4").is_file()
+        assert (ROOT / "workspace" / "smoke_import" / "meta.json").is_file()
+        print(f"  video_import: .mov remux → {meta['duration']}s {meta['width']}x{meta['height']}")
 
         res = await s.call_tool("scene_split", {"video": PID})
         split = json.loads(res.content[0].text)
@@ -121,7 +133,11 @@ async def check_stdio() -> None:
         assert res.is_error and "找不到视频" in res.content[0].text
         res = await s.call_tool("gen_image", {"prompt": "测试"})
         assert res.is_error and "HVC_API_KEY" in res.content[0].text
-        print("  错误路径: 找不到视频 / 缺 Key —— 都是人话  OK")
+        res = await s.call_tool("transcribe", {"video": PID})  # 测试片没音轨
+        assert res.is_error and "音轨" in res.content[0].text
+        res = await s.call_tool("video_import", {"path": "/不存在/x.mp4"})
+        assert res.is_error and "找不到文件" in res.content[0].text
+        print("  错误路径: 找不到视频 / 缺 Key / 没音轨 / 文件不存在 —— 都是人话  OK")
 
 
 async def main() -> None:
