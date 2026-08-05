@@ -36,6 +36,9 @@ description: 爆款短视频端到端复刻流水线：解构→DNA→换皮→�
 2b. 数字对齐（手册『实测数据基准』表，739 镜实测）：每拍默认 2-3s；
    每 2 个对白镜配 1 个反应镜；CU+MCU 约占 1/3；切镜率 9-17 镜/分钟，低于 8 即幻灯片
 3. 表演拍确认完整后才映射成 shots，I2V prompt 按手册"组装公式"写
+4. shots[] 每镜必须带 `type`(dialogue/reaction/action/empty/card/insert)与 `dur`，
+   写完跑 `.venv/bin/python scripts/script_lint.py workspace/<pid>/script.json`
+   —— 切镜率/反应配比/旁白上限/时长红线自动对基准，有警告先修再进生成
 
 镜头类型分配：
 - **对白戏**：钩子/冲突/和解等情感节点，角色开口演。每镜标 `kind: dialogue` 并写台词
