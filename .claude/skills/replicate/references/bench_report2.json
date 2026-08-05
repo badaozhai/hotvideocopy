@@ -1,0 +1,96 @@
+{
+ "videos": 101,
+ "transition_matrix": {
+  "dialogue": {
+   "dialogue": 0.603,
+   "action": 0.166,
+   "reaction": 0.125
+  },
+  "card": {
+   "dialogue": 0.409,
+   "card": 0.364,
+   "action": 0.136,
+   "empty": 0.057
+  },
+  "empty": {
+   "empty": 0.313,
+   "action": 0.296,
+   "dialogue": 0.174,
+   "insert": 0.139
+  },
+  "reaction": {
+   "action": 0.323,
+   "reaction": 0.299,
+   "dialogue": 0.283
+  },
+  "action": {
+   "action": 0.706,
+   "dialogue": 0.11,
+   "reaction": 0.081
+  },
+  "insert": {
+   "action": 0.386,
+   "insert": 0.272,
+   "dialogue": 0.132,
+   "empty": 0.114,
+   "reaction": 0.07
+  }
+ },
+ "position": {
+  "开头1/3": {
+   "shot_median": 2.6,
+   "n": 885,
+   "reaction_share": 0.093,
+   "card_share": 0.032
+  },
+  "中段1/3": {
+   "shot_median": 2.6,
+   "n": 719,
+   "reaction_share": 0.129,
+   "card_share": 0.036
+  },
+  "结尾1/3": {
+   "shot_median": 2.23,
+   "n": 742,
+   "reaction_share": 0.113,
+   "card_share": 0.077
+  }
+ },
+ "by_genre": {
+  "剧情段子": {
+   "videos": 6,
+   "shots": 98,
+   "shot_median": 2.56,
+   "cut_rate": 4.3,
+   "reaction_vs_dialogue": 0.24
+  },
+  "情侣日常": {
+   "videos": 10,
+   "shots": 351,
+   "shot_median": 2.12,
+   "cut_rate": 13.4,
+   "reaction_vs_dialogue": 0.41
+  },
+  "恶搞整蛊": {
+   "videos": 15,
+   "shots": 269,
+   "shot_median": 4.4,
+   "cut_rate": 8.4,
+   "reaction_vs_dialogue": 0.42
+  },
+  "其它": {
+   "videos": 64,
+   "shots": 1400,
+   "shot_median": 2.32,
+   "cut_rate": 11.3,
+   "reaction_vs_dialogue": 0.31
+  },
+  "搭讪街访": {
+   "videos": 6,
+   "shots": 228,
+   "shot_median": 3.03,
+   "cut_rate": 11.2,
+   "reaction_vs_dialogue": 0.65
+  }
+ }
+}

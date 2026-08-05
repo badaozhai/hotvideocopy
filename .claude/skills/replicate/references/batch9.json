@@ -1,0 +1,60 @@
+{
+  "BV17S4y197d1": [
+    {"idx": 0, "size": "WS", "type": "dialogue"},
+    {"idx": 1, "size": "MS", "type": "action"},
+    {"idx": 2, "size": "WS", "type": "dialogue"},
+    {"idx": 3, "size": "WS", "type": "dialogue"},
+    {"idx": 4, "size": "WS", "type": "action"},
+    {"idx": 5, "size": "MCU", "type": "reaction"},
+    {"idx": 6, "size": "WS", "type": "action"},
+    {"idx": 7, "size": "WS", "type": "action"},
+    {"idx": 8, "size": "WS", "type": "action"},
+    {"idx": 9, "size": "WS", "type": "action"},
+    {"idx": 10, "size": "WS", "type": "dialogue"},
+    {"idx": 11, "size": "MS", "type": "action"},
+    {"idx": 12, "size": "WS", "type": "action"},
+    {"idx": 13, "size": "MS", "type": "reaction"},
+    {"idx": 14, "size": "WS", "type": "action"},
+    {"idx": 15, "size": "WS", "type": "action"},
+    {"idx": 16, "size": "WS", "type": "action"},
+    {"idx": 17, "size": "WS", "type": "action"},
+    {"idx": 18, "size": "WS", "type": "action"},
+    {"idx": 19, "size": "MS", "type": "action"},
+    {"idx": 20, "size": "MS", "type": "action"},
+    {"idx": 21, "size": "WS", "type": "action"},
+    {"idx": 22, "size": "NA", "type": "card"}
+  ],
+  "BV1FY4y1L7np": [
+    {"idx": 0, "size": "WS", "type": "action"},
+    {"idx": 1, "size": "MS", "type": "action"},
+    {"idx": 2, "size": "MS", "type": "action"},
+    {"idx": 3, "size": "MS", "type": "action"},
+    {"idx": 4, "size": "MS", "type": "action"}
+  ],
+  "BV1B5411z7wj": [
+    {"idx": 0, "size": "WS", "type": "action"},
+    {"idx": 1, "size": "MS", "type": "action"},
+    {"idx": 2, "size": "MCU", "type": "dialogue"},
+    {"idx": 3, "size": "MS", "type": "action"}
+  ],
+  "BV1sw411e7CN": [
+    {"idx": 0, "size": "MS", "type": "reaction"}
+  ],
+  "BV1Dv4y1j7f5": [
+    {"idx": 0, "size": "MCU", "type": "dialogue"},
+    {"idx": 1, "size": "MS", "type": "dialogue"},
+    {"idx": 2, "size": "MCU", "type": "reaction"},
+    {"idx": 3, "size": "MCU", "type": "dialogue"},
+    {"idx": 4, "size": "MCU", "type": "dialogue"},
+    {"idx": 5, "size": "MCU", "type": "reaction"},
+    {"idx": 6, "size": "MCU", "type": "reaction"},
+    {"idx": 7, "size": "CU", "type": "reaction"},
+    {"idx": 8, "size": "MCU", "type": "reaction"},
+    {"idx": 9, "size": "MS", "type": "action"},
+    {"idx": 10, "size": "MS", "type": "dialogue"},
+    {"idx": 11, "size": "WS", "type": "dialogue"},
+    {"idx": 12, "size": "MCU", "type": "dialogue"},
+    {"idx": 13, "size": "MCU", "type": "dialogue"},
+    {"idx": 14, "size": "NA", "type": "card"}
+  ]
+}

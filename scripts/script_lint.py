@@ -19,7 +19,10 @@ import json
 import sys
 from pathlib import Path
 
-BENCH = {"cut_rate": (8.0, 17.0), "reaction_vs_dialogue": 0.4, "cu_mcu": 0.20,
+# 切镜率按叙事形态分档(56 条实测:剧情段子型 4.3 / 恶搞整蛊 8.4 / 情侣日常 13.4)
+# meta.pace: "dialogue-driven"=长对白镜承载(实拍剧情段子) / "fast"=快节奏(默认)
+CUT_RATE = {"dialogue-driven": (3.5, 10.0), "fast": (8.0, 17.0)}
+BENCH = {"reaction_vs_dialogue": 0.4, "cu_mcu": 0.20,
          "card_max": 2.0, "long_shot": 8.0}
 
 
@@ -42,9 +45,10 @@ def lint(path: str) -> int:
     if "?" in types:
         warns.append(f"{len(types['?'])} 个镜头缺 type 字段(dialogue/reaction/action/empty/card/insert)——lint 需要它")
 
+    pace = str((spec.get("meta") or {}).get("pace") or "fast")
+    lo, hi = CUT_RATE.get(pace, CUT_RATE["fast"])
     cut_rate = n / (total / 60) if total else 0
-    lo, hi = BENCH["cut_rate"]
-    infos.append(f"总长 {total:.1f}s / {n} 镜 → 切镜率 {cut_rate:.1f} 镜/分(基准 {lo}-{hi})")
+    infos.append(f"总长 {total:.1f}s / {n} 镜 → 切镜率 {cut_rate:.1f} 镜/分(形态 {pace},基准 {lo}-{hi})")
     if cut_rate < lo:
         warns.append(f"切镜率 {cut_rate:.1f} < {lo} —— 幻灯片红线,拆拍")
     elif cut_rate > hi:

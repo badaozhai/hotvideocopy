@@ -1,0 +1,20 @@
+{
+  "BV1GE411f754": [
+    {"idx": 0, "size": "WS", "type": "action"},
+    {"idx": 1, "size": "NA", "type": "card"},
+    {"idx": 2, "size": "NA", "type": "card"},
+    {"idx": 3, "size": "NA", "type": "card"},
+    {"idx": 4, "size": "NA", "type": "card"},
+    {"idx": 5, "size": "NA", "type": "card"}
+  ],
+  "BV1Nd4y1y7CZ": [
+    {"idx": 0, "size": "NA", "type": "empty"}
+  ],
+  "BV1i64y1c7wM": [
+    {"idx": 0, "size": "WS", "type": "action"},
+    {"idx": 1, "size": "WS", "type": "action"},
+    {"idx": 2, "size": "WS", "type": "action"},
+    {"idx": 3, "size": "WS", "type": "action"},
+    {"idx": 4, "size": "WS", "type": "action"}
+  ]
+}
