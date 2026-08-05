@@ -11,7 +11,7 @@ from __future__ import annotations
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ImageContent, TextContent
 
-from . import __version__, asr, douyin, images, ingest, ocr, shots
+from . import __version__, asr, douyin, images, ingest, ocr, shots, speech, timeline
 from . import video as video_api  # 别直接 import video：多个工具有叫 video 的参数，会遮蔽
 from .config import CONFIG
 from .media import probe
@@ -185,6 +185,31 @@ async def gen_video_extend(
     不是本地路径。返回 request_id，同样用 gen_video_get 查。
     """
     return await video_api.transform(prompt, video_url, "extensions", project_id, duration, name=name)
+
+
+@mcp.tool()
+async def tts(text: str, voice: str = "", project_id: str = "", name: str = "",
+              speed: float = 1.0, model: str = "") -> dict:
+    """文字转语音（网关 /v1/audio/speech），落 gen/tts/<name>.mp3。
+
+    返回带 duration——写 timeline 排人声落点全靠它。
+    voice/model 默认走 HVC_TTS_VOICE / HVC_TTS_MODEL。
+    逐句合成（一句一个文件），装配时按 at 落点铺，比整段合成好对时间轴。
+    """
+    return await speech.tts(text, voice, project_id, name, speed, model)
+
+
+@mcp.tool()
+async def assemble(timeline_ref: str) -> dict:
+    """按 timeline.json 装配成片：逐段精确裁切 → 统一规格拼接 → 铺音 → （可选）烧字幕。
+
+    timeline_ref 传 project_id（取其 timeline.json）或 json 文件路径。
+    timeline.json 你自己用 Write 写，schema 见 timeline.py 模块注释；要点：
+    - video[].trim 精确到帧——「生成向上取整、装配裁回 DNA 时间轴」就在这一步
+    - 片段自带音轨一律丢弃（grok 的音轨不要），人声 BGM 全走 audio[] 后期铺
+    - audio[].at 是落点秒，gain_db 压 BGM，loop 铺满全片
+    """
+    return await timeline.assemble(timeline_ref)
 
 
 @mcp.tool()

@@ -35,6 +35,8 @@ class Config:
     video_model: str
     whisper_model: str
     hf_token: str
+    tts_model: str
+    tts_voice: str
     img_concurrency: int
     proxy: str
 
@@ -53,6 +55,8 @@ class Config:
             # 中文短视频 BGM 重、语速快，large-v3 和 medium 的差距肉眼可见；嫌慢再降档
             whisper_model=_env("HVC_WHISPER_MODEL", default="large-v3"),
             hf_token=_env("HVC_HF_TOKEN", "HF_TOKEN", "HUGGINGFACE_TOKEN"),
+            tts_model=_env("HVC_TTS_MODEL", default="gpt-4o-mini-tts"),
+            tts_voice=_env("HVC_TTS_VOICE", default="alloy"),
             # 出图并发闸默认 1（串行）。实测中转对并发极敏感，一次多发就大面积 502。
             img_concurrency=max(1, min(6, int(_env("HVC_IMG_CONCURRENCY", default="1") or 1))),
             proxy=_env("HVC_PROXY", "HTTPS_PROXY", "https_proxy"),

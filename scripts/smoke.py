@@ -95,7 +95,7 @@ async def check_stdio() -> None:
         print(f"  server: {info.server_info.name} v{info.server_info.version or '?'}")
 
         tools = (await s.list_tools()).tools
-        assert len(tools) == 13, [t.name for t in tools]
+        assert len(tools) == 15, [t.name for t in tools]
         print(f"  tools({len(tools)}): " + ", ".join(t.name for t in tools))
 
         # 本地导入：造个 .mov 走 remux 路径，产出要与 douyin_fetch 完全对齐
@@ -128,6 +128,26 @@ async def check_stdio() -> None:
         assert vi["fps"] == 30.0 and vi["project_id"] == PID, vi
         print(f"  video_info: {vi['duration']}s {vi['width']}x{vi['height']} @{vi['fps']}fps")
 
+        # 装配闭环：3 段精确裁切（1.5+1.2+1.0=3.7s）+ 正弦 BGM 铺满，验证成片规格
+        subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=5",
+                        "-ac", "2", str(ROOT / "workspace" / PID / "bgm.wav")],
+                       check=True, capture_output=True)
+        (ROOT / "workspace" / PID / "timeline.json").write_text(json.dumps({
+            "video": [
+                {"src": "source.mp4", "trim": [0.0, 1.5]},
+                {"src": "source.mp4", "trim": [2.0, 3.2]},
+                {"src": "source.mp4", "trim": [4.0, 5.0]},
+            ],
+            "audio": [{"src": "bgm.wav", "at": 0, "gain_db": -6, "loop": True}],
+        }), encoding="utf-8")
+        res = await s.call_tool("assemble", {"timeline_ref": PID})
+        asm = json.loads(res.content[0].text)
+        assert abs(asm["duration"] - 3.7) < 0.15, asm
+        assert asm["has_audio"] and asm["clips"] == 3, asm
+        assert (ROOT / "workspace" / PID / "output.mp4").is_file()
+        print(f"  assemble: 3 段裁切拼接 + BGM 铺满 → {asm['duration']}s "
+              f"{asm['width']}x{asm['height']} has_audio={asm['has_audio']}")
+
         # 错误路径要给人话，不能吐 traceback
         res = await s.call_tool("scene_split", {"video": "不存在的项目"})
         assert res.is_error and "找不到视频" in res.content[0].text
@@ -137,6 +157,10 @@ async def check_stdio() -> None:
         assert res.is_error and "音轨" in res.content[0].text
         res = await s.call_tool("video_import", {"path": "/不存在/x.mp4"})
         assert res.is_error and "找不到文件" in res.content[0].text
+        res = await s.call_tool("tts", {"text": "测试"})
+        assert res.is_error and "HVC_API_KEY" in res.content[0].text
+        res = await s.call_tool("assemble", {"timeline_ref": "不存在的项目"})
+        assert res.is_error and "timeline" in res.content[0].text
         print("  错误路径: 找不到视频 / 缺 Key / 没音轨 / 文件不存在 —— 都是人话  OK")
 
 
