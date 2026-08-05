@@ -53,6 +53,7 @@ _load_dotenv()
 class Config:
     base_url: str
     video_base_url: str
+    video_status_base_url: str
     api_key: str
     grok_key: str
     workspace: Path
@@ -72,6 +73,8 @@ class Config:
         return cls(
             base_url=base,
             video_base_url=_env("HVC_VIDEO_BASE_URL", default=base),
+            # 有的中转只代理「发起」，状态查询要直连 xAI——两个端点允许分开指
+            video_status_base_url=_env("HVC_VIDEO_STATUS_BASE_URL", default=""),
             api_key=_env("HVC_API_KEY", "OPENAI_API_KEY"),
             grok_key=_env("HVC_GROK_KEY", "XAI_API_KEY"),
             workspace=Path(ws).expanduser().resolve(),

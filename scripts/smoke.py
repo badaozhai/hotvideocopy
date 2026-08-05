@@ -60,6 +60,10 @@ async def check_pure() -> None:
     assert V._status_endpoint("req_9") == "https://api.x.ai/v1/videos/req_9"
     object.__setattr__(C.CONFIG, "video_base_url", "https://gw.example.com")
     assert V._endpoint("generations") == "https://gw.example.com/v1/videos/generations"
+    # 发起走中转、查询直连 xAI 的分离配置
+    object.__setattr__(C.CONFIG, "video_status_base_url", "https://api.x.ai/v1")
+    assert V._status_endpoint("req_9") == "https://api.x.ai/v1/videos/req_9"
+    object.__setattr__(C.CONFIG, "video_status_base_url", "")
     assert V.pick_request_id({"data": {"id": "r1"}}) == "r1"
     assert V.pick_video_url({"data": [{"url": "https://u"}]}) == "https://u"
     assert V.pick_status({"video": {"status": "PENDING"}}) == "pending"

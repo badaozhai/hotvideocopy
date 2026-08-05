@@ -63,8 +63,8 @@ def _upsert(patch: dict) -> dict:
     return merged
 
 
-def _endpoint(action: str = "generations") -> str:
-    b = require(str(CONFIG.video_base_url or "").strip().rstrip("/"), "视频 API 地址（HVC_VIDEO_BASE_URL / HVC_BASE_URL）")
+def _endpoint_on(base: str, action: str) -> str:
+    b = require(str(base or "").strip().rstrip("/"), "视频 API 地址（HVC_VIDEO_BASE_URL / HVC_BASE_URL）")
     for tail in ("/videos/generations", "/videos/edits", "/videos/extensions"):
         if b.endswith(tail):
             return b[: -len(tail.split("/")[-1])] + action
@@ -73,8 +73,14 @@ def _endpoint(action: str = "generations") -> str:
     return f"{root}/videos/{action}"
 
 
+def _endpoint(action: str = "generations") -> str:
+    return _endpoint_on(CONFIG.video_base_url, action)
+
+
 def _status_endpoint(request_id: str) -> str:
-    return _endpoint("generations").rsplit("/", 1)[0] + "/" + request_id
+    """状态查询端点。有的中转只代理「发起」，查询要直连 xAI（HVC_VIDEO_STATUS_BASE_URL）。"""
+    base = CONFIG.video_status_base_url or CONFIG.video_base_url
+    return _endpoint_on(base, "generations").rsplit("/", 1)[0] + "/" + request_id
 
 
 def _pick(obj: dict, paths: list[str]) -> str:
