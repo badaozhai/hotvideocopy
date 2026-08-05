@@ -11,7 +11,7 @@ from __future__ import annotations
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ImageContent, TextContent
 
-from . import __version__, asr, douyin, images, ingest, shots
+from . import __version__, asr, douyin, images, ingest, ocr, shots
 from . import video as video_api  # 别直接 import video：多个工具有叫 video 的参数，会遮蔽
 from .config import CONFIG
 from .media import probe
@@ -89,6 +89,19 @@ async def transcribe(video: str, language: str = "", model: str = "",
     转写是 CPU 重活，一分钟的片可能要跑一两分钟——发起后别急。
     """
     return await asr.transcribe(video, language, model, vocals, diarize)
+
+
+@mcp.tool()
+async def ocr_burned_text(video: str, sample_step: float = 0.8,
+                          min_score: float = 0.65, max_width: int = 1080) -> dict:
+    """硬字幕/花字 OCR → ocr.json。抖音的标题花字和内嵌字幕只有这条路拿得到。
+
+    有 shots.json 时按镜头采样（每 sample_step 秒一帧），没有就整片等间隔。
+    返回按时间段合并后的 spans：text + t(起止) + y(0=画面顶 1=底) + x。
+    「y≈0.8 的是对白字幕、y≈0.2 的大字是标题花字」这类判断你自己下，工具不猜。
+    纯 CPU 本地跑，10 分钟的片约几百帧，要一会儿。
+    """
+    return await ocr.ocr_burned_text(video, sample_step, min_score, max_width)
 
 
 @mcp.tool()

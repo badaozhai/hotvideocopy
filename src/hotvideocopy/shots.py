@@ -103,8 +103,8 @@ async def scene_split(video: str, threshold: float = 27.0, max_shots: int = 200)
     return result
 
 
-async def frame_batch(video: str, timestamps: list[float], max_width: int = 640) -> list[tuple[float, bytes]]:
-    """按时间点抽帧，返回 [(ts, jpeg_bytes)]。抽不出的点静默跳过。"""
+async def frame_files(video: str, timestamps: list[float], max_width: int = 640) -> list[tuple[float, Path]]:
+    """按时间点抽帧到缓存，返回 [(ts, 文件路径)]。抽不出的点静默跳过。"""
     path = resolve_video(video)
     info = await probe(path)
     dur = float(info.get("duration") or 0)
@@ -114,14 +114,11 @@ async def frame_batch(video: str, timestamps: list[float], max_width: int = 640)
 
     ts_list = [max(0.0, min(float(t), dur - 0.05 if dur else float(t))) for t in timestamps]
 
-    async def one(ts: float) -> tuple[float, bytes] | None:
+    async def one(ts: float) -> tuple[float, Path] | None:
         out = cache / f"t{ts:09.3f}_w{max_width}.jpg"
         if not out.is_file() and not await extract_frame(path, ts, out, max_width):
             return None
-        try:
-            return ts, out.read_bytes()
-        except OSError:
-            return None
+        return ts, out
 
     # 抽帧是 IO 密集，但 ffmpeg 每个都吃满一核，限并发 4 免得把机器打死
     sem = asyncio.Semaphore(4)
@@ -132,6 +129,17 @@ async def frame_batch(video: str, timestamps: list[float], max_width: int = 640)
 
     results = await asyncio.gather(*(guarded(t) for t in ts_list))
     return [r for r in results if r]
+
+
+async def frame_batch(video: str, timestamps: list[float], max_width: int = 640) -> list[tuple[float, bytes]]:
+    """同 frame_files，但直接给 jpeg 字节（get_frames 的 ImageContent 用）。"""
+    out: list[tuple[float, bytes]] = []
+    for ts, p in await frame_files(video, timestamps, max_width):
+        try:
+            out.append((ts, p.read_bytes()))
+        except OSError:
+            continue
+    return out
 
 
 def to_b64(data: bytes) -> str:

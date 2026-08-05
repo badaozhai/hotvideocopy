@@ -95,7 +95,7 @@ async def check_stdio() -> None:
         print(f"  server: {info.server_info.name} v{info.server_info.version or '?'}")
 
         tools = (await s.list_tools()).tools
-        assert len(tools) == 12, [t.name for t in tools]
+        assert len(tools) == 13, [t.name for t in tools]
         print(f"  tools({len(tools)}): " + ", ".join(t.name for t in tools))
 
         # 本地导入：造个 .mov 走 remux 路径，产出要与 douyin_fetch 完全对齐
