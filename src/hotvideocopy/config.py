@@ -24,6 +24,31 @@ def _env(*names: str, default: str = "") -> str:
     return default
 
 
+def _load_dotenv() -> None:
+    """启动时读仓库根的 .env（已有的环境变量优先，不覆盖）。
+
+    值为空的行等于没写——模板里 `HVC_API_KEY=` 留空是安全的。
+    smoke 等需要「无 Key 环境」的场景设 HVC_NO_DOTENV=1 跳过。
+    """
+    if os.environ.get("HVC_NO_DOTENV"):
+        return
+    try:
+        lines = (_REPO_ROOT / ".env").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return
+    for line in lines:
+        s = line.strip()
+        if not s or s.startswith("#") or "=" not in s:
+            continue
+        k, _, v = s.partition("=")
+        k, v = k.strip(), v.strip().strip("'\"")
+        if k and v and k not in os.environ:
+            os.environ[k] = v
+
+
+_load_dotenv()
+
+
 @dataclass(frozen=True)
 class Config:
     base_url: str

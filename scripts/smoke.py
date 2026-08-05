@@ -87,8 +87,9 @@ async def check_stdio() -> None:
 
     params = StdioServerParameters(
         command=str(ROOT / ".venv" / "bin" / "hotvideocopy"),
-        env={k: v for k, v in os.environ.items()
-             if k not in ("HVC_API_KEY", "HVC_GROK_KEY", "OPENAI_API_KEY", "XAI_API_KEY")},
+        env={**{k: v for k, v in os.environ.items()
+                if k not in ("HVC_API_KEY", "HVC_GROK_KEY", "OPENAI_API_KEY", "XAI_API_KEY")},
+             "HVC_NO_DOTENV": "1"},  # 错误路径断言需要「无 Key」环境，别让 .env 混进来
     )
     async with stdio_client(params) as (r, w), ClientSession(r, w) as s:
         info = await s.initialize()
