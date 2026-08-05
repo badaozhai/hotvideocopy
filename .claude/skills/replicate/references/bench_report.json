@@ -1,0 +1,81 @@
+{
+ "corpus": {
+  "videos": 22,
+  "shots": 739,
+  "total_minutes": 85.0
+ },
+ "shot_duration": {
+  "p25": 1.33,
+  "median": 2.43,
+  "p75": 4.64,
+  "pct_le_2s": 0.436,
+  "pct_2_5s": 0.327,
+  "pct_gt_10s": 0.115
+ },
+ "duration_by_type": {
+  "action": {
+   "n": 271,
+   "median": 2.2,
+   "p75": 4.5
+  },
+  "dialogue": {
+   "n": 248,
+   "median": 3.7,
+   "p75": 9.67
+  },
+  "reaction": {
+   "n": 131,
+   "median": 2.2,
+   "p75": 3.43
+  },
+  "empty": {
+   "n": 35,
+   "median": 1.2,
+   "p75": 3.13
+  },
+  "card": {
+   "n": 30,
+   "median": 1.07,
+   "p75": 2.57
+  },
+  "insert": {
+   "n": 24,
+   "median": 1.73,
+   "p75": 4.4
+  }
+ },
+ "type_share": {
+  "action": 0.367,
+  "dialogue": 0.336,
+  "reaction": 0.177,
+  "empty": 0.047,
+  "card": 0.041,
+  "insert": 0.032
+ },
+ "size_share_human_shots": {
+  "CU": 0.097,
+  "MCU": 0.215,
+  "MS": 0.421,
+  "WS": 0.267
+ },
+ "cu_mcu_ratio": 0.312,
+ "reaction": {
+  "per_minute": 1.54,
+  "reaction_vs_dialogue": 0.53
+ },
+ "cards": {
+  "share": 0.041,
+  "median_duration": 1.07,
+  "median_gap_s": 14.7,
+  "gap_p75": 74.9
+ },
+ "hook": {
+  "first_shot_median": 4.63,
+  "videos_with_card_in_first_10s": "4/22"
+ },
+ "cut_rate_per_min": {
+  "median": 11.93,
+  "p25": 8.87,
+  "p75": 16.73
+ }
+}
