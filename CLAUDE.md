@@ -223,9 +223,9 @@ DNA 的质量决定后面一切。这一步做扎实，它本身就是个能用�
 
 **第四阶段：端到端复刻实验**（工具箱已齐，闭环待跑）
 
-- [ ] 首条 DNA：把 storyboard 升格成正式 dna.json
-- [ ] 骨架换皮 → script.json → 定妆图 → 首帧 → I2V → tts → assemble
-- [ ] 多题材样本验证 DNA schema 稳定性
+- [x] 首条 DNA：把 storyboard 升格成正式 dna.json
+- [x] 骨架换皮 → script.json → 定妆图 → 首帧 → I2V → tts → assemble（两条成片：雨夜外卖 72s / 凌晨洗衣店 60s 零旁白对手戏）
+- [x] 多题材样本验证 DNA schema 稳定性（101 条语料基准化,见 skill references）
 
 ---
 
