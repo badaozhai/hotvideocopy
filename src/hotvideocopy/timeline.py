@@ -169,8 +169,12 @@ async def assemble(timeline: str) -> dict:
     if tracks:
         # apad=whole_dur 会自己终止；千万别写 apad,atrim=0:D——atrim 不向上游发 EOF，
         # apad 无限产静音，muxer 永远收不到流结束，ffmpeg 100% CPU 空转（实案）
-        fparts.append(f"{''.join(amaps)}amix=inputs={len(tracks)}:duration=longest:normalize=0,"
-                      f"apad=whole_dur={vdur:.3f}[aout]")
+        chain = (f"{''.join(amaps)}amix=inputs={len(tracks)}:duration=longest:normalize=0,"
+                 f"apad=whole_dur={vdur:.3f}")
+        if spec.get("loudnorm", True):
+            # 成片响度拉到短视频平台口径（约 -14 LUFS）；TTS/素材原始响度普遍偏小
+            chain += ",loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000"
+        fparts.append(chain + "[aout]")
 
     if subs:
         sp = _resolve_asset(subs, pid)
