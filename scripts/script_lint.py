@@ -68,6 +68,20 @@ def lint(path: str) -> int:
         if close < BENCH["cu_mcu"]:
             warns.append(f"贴近人物的镜头太少({close:.0%})——情绪进不去,加近景/特写")
 
+    # 眼线/轴线检查(手册第九章):对手戏单人镜必须声明 eyeline 且同角色全片一致
+    eyelines: dict = {}
+    for s in shots:
+        if s.get("type") in ("dialogue", "reaction") and s.get("who"):
+            e = s.get("eyeline")
+            if not e:
+                warns.append(f"idx={s.get('idx')} 对手戏单人镜缺 eyeline(R/L/partner/camera)")
+            elif e == "camera":
+                warns.append(f"idx={s.get('idx')} eyeline=camera——对手戏禁对镜头(仅 vlog 口播允许)")
+            else:
+                prev = eyelines.setdefault(s["who"], e)
+                if e not in ("partner",) and prev not in ("partner",) and e != prev:
+                    warns.append(f"idx={s.get('idx')} 角色 {s['who']} 眼线 {e} 与此前 {prev} 不一致——轴线跳了")
+
     narr = [s for s in shots if s.get("narration")]
     infos.append(f"旁白 {len(narr)} 句 / {n} 镜(上限 {n // 2})")
     if len(narr) > n // 2:

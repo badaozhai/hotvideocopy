@@ -116,3 +116,27 @@ cinematic realistic, no speech`
 - 一镜一个表演拍,动作别超过 2 个(grok 塞太多会赶戏)
 - 情绪转变(愣住→笑)要在 prompt 里写"then",给转变留时间(5-6s 档)
 - 无对白镜加 `no speech`,防它自己配话
+
+## 九、空间语法与眼线（AI 生成特有，48 帧实审教训）
+
+AI 单人镜默认把人拍成"对镜头肖像",一开口就是破第四面墙的独白感——
+**这是 AI 对手戏最大的穿帮源**(实审 16 镜中 6 镜违例)。规则:
+
+1. **开轴**:进入对手戏场景的第一个双人镜定轴——A 在画左、B 在画右,全场不变。
+2. **单人镜锁眼线**:此后 A 的单人镜一律 3/4 侧身朝画右、看画外的 B;B 反之朝画左。
+   首帧 I2I prompt 和 I2V prompt **都必须写**:
+   `in 3/4 profile facing screen-RIGHT, looking at the person off-frame, NOT at the camera`
+   例外:只有 vlog 口播人设才允许对镜头。
+3. **正反打优先过肩镜(OTS)**:对方的肩/后脑勺压前景——空间感自带,且物理上杜绝对镜头。
+   `over-the-shoulder shot from behind the man, focusing on the woman talking to him`
+4. **双人同框镜是空间锚**:实测双人镜空间从不穿帮——每 3-4 个单人镜回一个双人镜校准空间。
+5. **手部纪律**:开门/递物/持物等手-物交互是 AI 弱项——
+   要么放进双人中景(手小,穿帮不可见),要么拆成物品 insert 特写(无人手),
+   避免"近景+手部大面积交互"组合;首帧里手保持自然下垂或简单持物。
+6. **台词语气必须显式**:prompt 不写语气 = 沮丧低沉腔(实测)。每句对白标注:
+   `in a light teasing tone`(毒舌调侃) / `warmly`(温和) / `nervous but earnest`(紧张诚恳) /
+   `flat deadpan with a hint of care`(嘴硬心软)。中文台词一样生效。
+7. **动作强度要加码**:`小跑`会被弱化成散步——用 sprint/dash/hurriedly/quickly 并重复强调。
+
+**QC 抽帧清单(生成后逐镜)**:①视线对镜头? ②轴线与开轴一致? ③手部畸变/交互错误?
+④动作强度达标? ⑤语气听感对? —— 任一违例即重生成该镜,不许带病装配。
