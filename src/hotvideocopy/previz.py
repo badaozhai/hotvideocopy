@@ -199,3 +199,91 @@ def main(path: str) -> int:
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1]))
+
+
+# ─────────────────── B/C 档:双关键帧 + 轨迹演算 ───────────────────
+
+def _lerp(a, b, t):
+    if isinstance(a, (int, float)):
+        return a + (b - a) * t
+    return [_lerp(x, y, t) for x, y in zip(a, b)]
+
+
+def _smooth(t):  # smoothstep,起止有缓入缓出
+    return t * t * (3 - 2 * t)
+
+
+def _interp_beat(beat, t):
+    """按 t∈[0,1] 在 start/end 之间插值出瞬时 beat。"""
+    end = beat.get("end") or {}
+    cur = {"id": beat["id"], "actors": {}, "camera": dict(beat["camera"])}
+    e_cam = end.get("camera") or {}
+    for k in ("pos", "look"):
+        if k in e_cam:
+            cur["camera"][k] = _lerp(beat["camera"][k], e_cam[k], t)
+    if "fov" in e_cam:
+        cur["camera"]["fov"] = _lerp(beat["camera"].get("fov", 55), e_cam["fov"], t)
+    e_act = end.get("actors") or {}
+    for aid, spec in (beat.get("actors") or {}).items():
+        s = dict(spec)
+        if aid in e_act:
+            ea = e_act[aid]
+            if "pos" in ea:
+                s["pos"] = _lerp(spec["pos"], ea["pos"], t)
+            if "facing" in ea:
+                s["facing"] = _lerp(spec["facing"], ea["facing"], t)
+            if "pose" in ea and t > 0.5:
+                s["pose"] = ea["pose"]
+        cur["actors"][aid] = s
+    return cur
+
+
+def motion_spec(beat):
+    """从几何推导运镜/动作的英文描述,直接喂 I2V prompt。"""
+    end = beat.get("end") or {}
+    parts = []
+    e_cam = end.get("camera") or {}
+    if "pos" in e_cam:
+        cam0, cam1 = beat["camera"]["pos"], e_cam["pos"]
+        look0 = beat["camera"]["look"]
+        fwd = _norm(_v(cam0, look0))
+        d = _v(cam0, cam1)
+        dolly = _dot(d, fwd)
+        lateral = math.sqrt(max(0.0, _dot(d, d) - dolly * dolly))
+        if abs(dolly) > 0.15:
+            parts.append(f"camera slowly {'pushes in' if dolly > 0 else 'pulls back'} {abs(dolly):.1f}m")
+        if lateral > 0.15:
+            parts.append(f"camera tracks {lateral:.1f}m")
+    for aid, ea in (end.get("actors") or {}).items():
+        sa = (beat.get("actors") or {}).get(aid)
+        if sa and "pos" in ea:
+            dist = math.dist(sa["pos"], ea["pos"])
+            if dist > 0.4:
+                parts.append(f"character {aid} moves {dist:.1f}m to the new mark")
+        if sa and ea.get("pose") and ea["pose"] != sa.get("pose"):
+            parts.append(f"character {aid} {'sits down' if ea['pose']=='sit' else 'stands up'}")
+    return "; ".join(parts) or "static camera"
+
+
+def render_pair(scene, beat, out_dir):
+    """B 档:渲染首/尾两张布局图 + 运动描述。"""
+    a = Path(out_dir) / f"{beat['id']}_a.png"
+    b = Path(out_dir) / f"{beat['id']}_b.png"
+    render_beat(scene, _interp_beat(beat, 0.0), a)
+    render_beat(scene, _interp_beat(beat, 1.0), b)
+    return str(a), str(b), motion_spec(beat)
+
+
+def render_animation(scene, beat, out_dir, dur=3.0, fps=12):
+    """C 档:实时演算——插值渲染布局动画,ffmpeg 合成 mp4。"""
+    import subprocess, tempfile
+    frames_dir = Path(tempfile.mkdtemp(prefix=f"previz_{beat['id']}_"))
+    n = max(2, int(dur * fps))
+    for i in range(n):
+        t = _smooth(i / (n - 1))
+        render_beat(scene, _interp_beat(beat, t), frames_dir / f"f{i:04d}.png")
+    out = Path(out_dir) / f"{beat['id']}_anim.mp4"
+    subprocess.run(["ffmpeg", "-y", "-framerate", str(fps), "-i", str(frames_dir / "f%04d.png"),
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", str(out)],
+                   check=True, capture_output=True)
+    return str(out)
