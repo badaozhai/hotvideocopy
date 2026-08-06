@@ -142,6 +142,17 @@ async def assemble(timeline: str) -> dict:
     out.parent.mkdir(parents=True, exist_ok=True)
 
     tracks = spec.get("audio") or []
+    if isinstance(tracks, str) and tracks.upper().startswith("AUTO"):
+        # 自动铺音:每段视频自带原声按其时间位置落轨(无音轨的卡自动跳过)——1:1 复刻标配
+        tracks = []
+        at = 0.0
+        for c in clips:
+            csrc = _resolve_asset(c.get("src", ""), pid)
+            cinfo = await probe(csrc)
+            cdur = (float(c["trim"][1]) - float(c["trim"][0])) if c.get("trim") else float(cinfo.get("duration") or 0)
+            if cinfo.get("has_audio"):
+                tracks.append({"src": c["src"], "trim": c.get("trim") or [0, round(cdur, 3)], "at": round(at, 3)})
+            at += cdur
     subs = str(spec.get("subtitles") or "").strip()
 
     args = ["-y", "-i", str(silent)]
