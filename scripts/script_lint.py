@@ -73,6 +73,8 @@ def lint(path: str) -> int:
     for s in shots:
         if s.get("type") in ("dialogue", "reaction") and s.get("who"):
             e = s.get("eyeline")
+            if e in ("NL", "NR"):   # 非对手视线(看窗/看物),不参与轴线一致性
+                continue
             if not e:
                 warns.append(f"idx={s.get('idx')} 对手戏单人镜缺 eyeline(R/L/partner/camera)")
             elif e == "camera":
@@ -81,6 +83,19 @@ def lint(path: str) -> int:
                 prev = eyelines.setdefault(s["who"], e)
                 if e not in ("partner",) and prev not in ("partner",) and e != prev:
                     warns.append(f"idx={s.get('idx')} 角色 {s['who']} 眼线 {e} 与此前 {prev} 不一致——轴线跳了")
+
+    # 走位连续性(手册第十一章):同角色相邻两镜 pos 不同且中间无移动镜 → 瞬移
+    last_pos: dict = {}
+    for s in shots:
+        pos = s.get("pos") or {}
+        moved = s.get("type") == "action"
+        for who, p_ in pos.items():
+            if who == "cam":
+                continue
+            prev = last_pos.get(who)
+            if prev and p_ != prev and not moved:
+                warns.append(f"idx={s.get('idx')} 角色 {who} 位置 {prev}→{p_} 无移动镜承接——瞬移")
+            last_pos[who] = p_
 
     narr = [s for s in shots if s.get("narration")]
     infos.append(f"旁白 {len(narr)} 句 / {n} 镜(上限 {n // 2})")
