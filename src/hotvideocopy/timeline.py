@@ -122,6 +122,10 @@ async def assemble(timeline: str) -> dict:
                                "-pix_fmt", "yuv420p", str(part), timeout=1800)
         if rc != 0 or not part.is_file():
             raise RuntimeError(f"video[{i}] 裁切失败：{err[-300:]}")
+        pdur = float((await probe(part)).get("duration") or 0)
+        if pdur < 0.1:
+            # 1-2 帧的碎片段会污染 concat 时间戳,整条成片时长塌缩(实案:1帧卡致 529s→143s)
+            raise RuntimeError(f"video[{i}] 规格化后仅 {pdur:.3f}s(源 {src.name} 可能坏/参数错)——碎片段禁止入拼接")
         parts.append(part)
 
     # ── pass 2：concat demuxer 拼接（规格已统一，copy 即可）
