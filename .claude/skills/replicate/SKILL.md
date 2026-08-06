@@ -50,8 +50,8 @@ description: 爆款短视频端到端复刻流水线：解构→DNA→换皮→�
 
 ## 四、生成（串行图 → 并行视频 → QC）
 
-1. 定妆图（每角色一张，3/4 身位纯色背景）→ 人工看图过目
-2. 首帧：带定妆图 refs 走 I2I 锁脸；出图后 `crop` 到 9:16（gpt-image 是 2:3）
+1. 定妆图（每角色一张，3/4 身位纯色背景）→ **场景定妆图(set bible:主视角全景+操作区特写,锁道具位置)** → 人工看图过目
+2. 首帧：refs=[角色定妆+场景定妆] 走 I2I——人锁脸,景锁位;script 的 props 表声明道具锚定位置,涉具镜 prompt 复用同一句描述;出图后 `crop` 到 9:16
 3. I2V 全部发起（`gen_video_start`，duration 向上取整）：
    - 对白镜 prompt 写 `says in Chinese: "台词"`，结尾加 lip sync 要求
    - 动作镜写清动作全程；所有镜加 `cinematic realistic`
