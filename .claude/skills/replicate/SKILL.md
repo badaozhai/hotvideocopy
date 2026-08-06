@@ -50,8 +50,11 @@ description: 爆款短视频端到端复刻流水线：解构→DNA→换皮→�
 
 ## 四、生成（串行图 → 并行视频 → QC）
 
-1. 定妆图（每角色一张，3/4 身位纯色背景）→ **场景定妆图(set bible:主视角全景+操作区特写,锁道具位置)** → 人工看图过目
-2. 首帧：refs=[角色定妆+场景定妆] 走 I2I——人锁脸,景锁位;script 的 props 表声明道具锚定位置,涉具镜 prompt 复用同一句描述;出图后 `crop` 到 9:16
+1. 定妆图（每角色一张）→ **场景定妆图(set bible)** → **scene3d.json + previz 渲染**
+   (`python -m hotvideocopy.previz`,几何自检必须全绿:视线/瞬移/画面方位) → 人工看图过目
+2. 首帧：refs=[**previz 布局图**+角色定妆+场景定妆]——布局锁空间,定妆锁人与质感;
+   prompt 首句:「机位/构图/人物位置朝向与布局图完全一致,X色人偶=角色N」;出图后 `crop` 到 9:16;
+   全组首帧拼墙与 previz 并排比对通过后才发 I2V
 3. I2V 全部发起（`gen_video_start`，duration 向上取整）：
    - 对白镜 prompt 写 `says in Chinese: "台词"`，结尾加 lip sync 要求
    - 动作镜写清动作全程；所有镜加 `cinematic realistic`
