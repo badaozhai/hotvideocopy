@@ -12,6 +12,9 @@ shots = json.loads((SEG / "shots.json").read_text())["shots"]
 picks = json.loads((SEG / "picks_r4.json").read_text())
 cx_map = json.loads((SEG / "crop_cx.json").read_text())
 
+# 病灶裁窗:只取片段内干净区间(ss, src_dur),微慢放拉到 DNA 时长
+WIN = {"shot_003": (2.02, 2.02)}  # v3: 前 2s 有空嘴张开,尾段干净
+
 # 悟空台词片内时间(whisper 实测): shot_002 0.43-4.27; shot_004 由 SHOT004_T 注入
 SHOT004_T = json.loads((SEG / "shot004_line.json").read_text())  # {"start":片内秒,"end":片内秒}
 POS_002 = 9.83
@@ -59,7 +62,7 @@ for sh in shots:
     sid, dur = sh["id"], sh["duration"]
     src = C / f"r4v_{sid}_v{picks[sid]}.mp4"
     if not src.is_file():
-        for k in range(2):
+        for k in range(4):
             alt = C / f"r4v_{sid}_v{k}.mp4"
             if alt.is_file():
                 src = alt
@@ -84,6 +87,15 @@ for k, (src, dur, cx, sid, is_img) in enumerate(segs):
             f"[{k}:v]crop='min(iw,ih*9/16)':ih:'min(max(iw*{cx}-ow/2,0),iw-ow)':0,"
             f"scale=2160:3840,zoompan=z='min(zoom+0.0010,1.10)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
             f":d={n}:s=1080x1920:fps=30,trim=duration={dur},setpts=PTS-STARTPTS,format=yuv420p[s{k}]")
+    elif sid in WIN:
+        ss, srcd = WIN[sid]
+        factor = dur / srcd
+        filters.append(
+            f"[{k}:v]trim=start={ss}:duration={srcd},setpts=(PTS-STARTPTS)*{factor:.5f},"
+            f"crop='min(iw,ih*4/3)':ih,"
+            f"crop='min(iw,ih*9/16)':ih:'min(max(iw*{cx}-ow/2,0),iw-ow)':0,"
+            f"scale=1080:1920,fps=30,trim=duration={dur},setpts=PTS-STARTPTS,format=yuv420p[s{k}]")
+        inputs += ["-i", src]
     else:
         inputs += ["-i", src]
         filters.append(
