@@ -47,13 +47,18 @@ uv venv --python 3.12 .venv && uv pip install -e .
 | 工具 | 阶段 | 说明 |
 |---|---|---|
 | `douyin_fetch(url)` | 解构 | 分享页 `_ROUTER_DATA` 解析 + 去水印，产出 `source.mp4` / `meta.json` |
+| `video_import(path)` | 解构 | 导入本地 MP4/MOV，产出与 `douyin_fetch` 对齐的工作区 |
 | `scene_split(video)` | 解构 | PySceneDetect 切镜（退路 ffmpeg），产出 `shots.json` + 时长曲线 |
 | `get_frames(video, ts[])` | 解构 | 返回 `ImageContent`，Claude 直接看画面 |
 | `video_info(video)` | 解构 | 时长/分辨率/帧率/编码/音轨 |
+| `transcribe(video)` | 解构 | 人声分离、ASR 时间戳，按环境安装情况提供说话人信息 |
+| `ocr_burned_text(video)` | 解构 | OCR 抓硬字幕、标题花字和贴纸时间段 |
 | `gen_image(...)` | 生成 | gpt-image-2，无 refs=定妆图，有 refs=锁脸出首帧 |
 | `gen_video_start(...)` | 生成 | grok，**发起即返回 request_id，不阻塞** |
 | `gen_video_get(id)` | 生成 | 查状态，done 当场落盘（上游是临时链接） |
 | `gen_video_extend(...)` | 生成 | 从末帧续接，超 15s 长镜用 |
+| `tts(text, voice)` | 生成 | 网关 TTS 优先，edge-tts 兜底，返回实际时长 |
+| `assemble(timeline)` | 装配 | 精确裁切、统一规格、铺音、可选字幕 |
 | `gen_video_jobs()` | 运维 | 任务清单打捞——会话断了片不会变孤儿 |
 | `workspace_info()` | 运维 | 配置与工作区状态自检 |
 
@@ -73,13 +78,38 @@ gen_video_start(image=首帧) ×N → gen_video_get 逐个收
 （Claude 手写 timeline.json）→ ffmpeg 精确裁切拼接铺音
 ```
 
+### 分镜工程文件
+
+`storyboard.json` 是源片的时间轴真值，`production.json` 是目标成片的制作档案。
+已有项目可以用以下命令做基础或严格校验：
+
+```bash
+.venv/bin/python scripts/storyboard_lint.py <project_id>
+.venv/bin/python scripts/storyboard_lint.py <project_id> --strict
+.venv/bin/python scripts/storyboard_report.py <project_id> --strict
+.venv/bin/python scripts/keyframes_from_storyboard.py <project_id> --dry-run
+```
+
+`storyboard_build.py` 兼容正式 MCP 的 `t: [start, end]` 和历史复刻脚本的
+`t_start/t_end` 两种镜头格式；它只合并确定性数据，场景、人物和动作描述仍由 agent 回填。
+因此，机器汇总完成后先跑基础校验；逐镜描述回填完成，再跑 `--strict` 作为读懂验收门禁。
+`storyboard_report.py` 会把确定性指标写入 `qc/storyboard_report.json/md`，并明确标出仍需人工完成的冷读 QA 与弱还原。
+`keyframes_from_storyboard.py --dry-run` 只生成关键帧计划，不调用图片 API；角色参考图优先读取
+`global.characters[].asset`，缺失时才回退到 `repl_P1/repl_P2` 占位路径。
+
 ## 状态
 
 - [x] 骨架 + `douyin_fetch` / `scene_split` / `get_frames`
 - [x] gpt-image / grok 能力移植（自 `henduohao`）
-- [ ] `transcribe`（demucs 分离人声 + faster-whisper + pyannote）
-- [ ] `ocr_burned_text`（抖音花字只有 OCR 拿得到）
-- [ ] `tts` / `assemble`
+- [x] `video_import` / `transcribe` / `ocr_burned_text`
+- [x] `tts` / `assemble`
+- [x] `gen_video_extend` / `gen_video_jobs` / `workspace_info`
+- [x] `storyboard_build.py`：分镜工程文件汇总
+- [x] `storyboard_lint.py`：基础结构校验 + 严格语义校验
+- [x] `storyboard_report.py`：确定性 QA 指标与人工门禁报告
+- [x] `keyframes_from_storyboard.py --dry-run`：弱还原任务计划
+- [ ] 冷读 QA 与弱还原的人工验收闭环
+- [ ] r5-r8 复刻脚本提炼为 action / dialogue / pov / quote 模板
 
 ## 合规
 

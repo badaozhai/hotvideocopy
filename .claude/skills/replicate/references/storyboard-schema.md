@@ -12,7 +12,8 @@
   "global": {
     "genre": "剧情反转", "tone": "悬疑→搞笑",
     "characters": [
-      { "id": "P1", "look": "20多岁女性,黑长直,白衬衫", "voice": "音色描述", "role": "叙事功能" }
+      { "id": "P1", "look": "20多岁女性,黑长直,白衬衫", "voice": "音色描述", "role": "叙事功能",
+        "asset": "gen/images/cast_P1.png" }
     ]
   },
   "shots": [
@@ -64,8 +65,42 @@ douyin_fetch → scene_split(shots.json)
    与看过原片的答案一致 → 信息无损
 2. **弱还原**:schema → gpt-image 逐 shot 出关键帧 → 与原片帧对比构图/景别/主体位置
 
+确定性门禁可先运行：
+
+```bash
+.venv/bin/python scripts/storyboard_lint.py <project_id> --strict
+.venv/bin/python scripts/storyboard_report.py <project_id> --strict
+```
+
+报告会写入 `workspace/<project_id>/qc/storyboard_report.json` 和 `.md`。其中
+`structural`、`semantic` 可以自动判定，`cold_read` 与 `weak_reconstruction` 必须由
+未看源片的代理和人工关键帧拼墙分别完成后再手动更新。
+
 ## 阶段规划
 
 1. **读懂**:上述管线跑通,storyboard.json 通过双重验证 → 里程碑
 2. **1:1 复刻**:同镜头数/同台词量/同节奏,人物素材替换,逐 shot 生成 → 达标即封版
 3. **创作**:复刻基础上微调(换题材/换台词),不另起炉灶
+
+## production.json 制作档案
+
+`storyboard.json` 记录源片，`production.json` 记录目标成片；两者不要混用。
+制作档案保持普通 JSON，最少包含：
+
+```jsonc
+{
+  "schema_version": "1.0",
+  "project_id": "dy_xxx",
+  "state": "draft|delivered|archived",
+  "source": { "project_id": "dy_xxx", "file": "source.mp4", "platform": "douyin" },
+  "target": { "title": "...", "profile": "action|dialogue|pov|quote", "duration": 10.0, "shot_count": 4 },
+  "deliverables": [{ "file": "final.mp4", "status": "selected", "version": "v1" }],
+  "selection": {},
+  "qc": { "status": "passed", "checks": [] },
+  "lessons": [],
+  "next_action": "..."
+}
+```
+
+`selection` 记录最终采用的片段/首帧/配音版本，`qc` 记录可复核的检查项，`lessons`
+只写已验证的经验。生成次数、失败原因和成本可以继续追加，但不要把创意判断藏进工具状态。

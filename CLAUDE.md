@@ -29,6 +29,7 @@ workspace/<project_id>/
 ├── shots.json          # scene_split 产出（机器写）
 ├── transcript.json     # transcribe 产出，带时间戳 + speaker
 ├── ocr.json            # 硬字幕/花字
+├── storyboard.json     # ★ 源片分镜工程文件，时间轴对齐的唯一真值
 ├── dna.json            # ★ 核心资产，Claude 写/改
 ├── script.json         # 改写后的新剧本
 ├── frames/             # 抽帧缓存
@@ -36,6 +37,8 @@ workspace/<project_id>/
 │   ├── images/         # gpt-image-2 产出的分镜首帧
 │   └── clips/          # grok 产出的视频片段
 ├── timeline.json       # 装配指令，Claude 写，assemble 消费
+├── production.json      # 目标成片的选片、返工、QC、交付档案
+├── qc/                  # 拼墙、探针和人工验收产物
 └── output.mp4
 ```
 
@@ -221,12 +224,15 @@ DNA 的质量决定后面一切。这一步做扎实，它本身就是个能用�
 - [x] `tts`（网关 /v1/audio/speech；本地音色克隆引擎待需求）
 - [x] `assemble`（精确裁切 + 统一规格拼接 + 铺音 + 烧字幕，真片验证过）
 
-**第四阶段：端到端创作实验**（已做四部成片,结论:读懂未扎实前创作是空中楼阁——转向）
+**第四阶段：端到端创作实验**（已做五部成片,结论:读懂未扎实前创作是空中楼阁——转向）
 
 **★ 现行主线(2026-08 重定):读懂 → 1:1 复刻 → 封版 → 创作=复刻微调**
 
-- [ ] **读懂**:分镜工程文件 storyboard.json(时间轴对齐分层 schema,见
-      skill references/storyboard-schema.md)提取管线跑通,冷读 QA + 弱还原双验证
+- [x] **读懂基础设施**:storyboard_build.py 已能汇总 shots/motion/ASR/OCR/逐镜描述，
+      storyboard_lint.py 已提供基础与严格校验，storyboard_report.py 已落盘确定性 QA 指标；
+      三个代表项目已有初版 storyboard.json 与 qc 报告
+- [ ] **读懂验收**:分镜工程文件 storyboard.json(时间轴对齐分层 schema,见
+      skill references/storyboard-schema.md)通过冷读 QA + 弱还原双验证
 - [ ] **1:1 复刻**:同镜头数/同台词量/同节奏,人物素材替换,逐 shot 生成,达标封版
 - [ ] **创作**:复刻基础上微调,不另起炉灶
 

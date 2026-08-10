@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import asyncio
+import argparse
 import sys
 from pathlib import Path
 
@@ -16,13 +17,34 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from hotvideocopy import images  # noqa: E402
-from hotvideocopy.workspace import read_json, sub  # noqa: E402
+from hotvideocopy.workspace import read_json, sub, write_json  # noqa: E402
 
 CARD_HINTS = ("卡", "梗图", "插卡", "无人画面", "测试卡", "字卡")
 
 
 def is_card(shot: dict) -> bool:
     return not shot.get("subjects") and any(h in (shot.get("scene") or "") for h in CARD_HINTS)
+
+
+def _asset_path(pid: str, raw: str) -> str:
+    path = Path(raw).expanduser()
+    candidates = [path, ROOT / raw, sub(pid, raw, create=False)]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate.resolve())
+    return str(path)
+
+
+def reference_paths(pid: str, sb: dict) -> dict[str, str]:
+    refs: dict[str, str] = {}
+    chars = (sb.get("global") or {}).get("characters") or []
+    for char in chars:
+        if isinstance(char, dict) and char.get("id") and char.get("asset"):
+            refs[str(char["id"])] = _asset_path(pid, str(char["asset"]))
+    image_dir = sub(pid, "gen", "images", create=True)
+    refs.setdefault("P1", str(image_dir / "repl_P1.png"))
+    refs.setdefault("P2", str(image_dir / "repl_P2.png"))
+    return refs
 
 
 def build(shot: dict, P1: str, P2: str) -> tuple[str, list[str]]:
@@ -53,11 +75,52 @@ def build(shot: dict, P1: str, P2: str) -> tuple[str, list[str]]:
     return "".join(parts), refs
 
 
-async def main(pid: str) -> None:
+def build_plan(pid: str, sb: dict) -> dict:
+    D = sub(pid, "gen", "images", create=True)
+    refs_by_id = reference_paths(pid, sb)
+    P1, P2 = refs_by_id["P1"], refs_by_id["P2"]
+    items = []
+    for shot in sb.get("shots") or []:
+        idx = shot["idx"]
+        card = is_card(shot)
+        prompt, refs = build(shot, P1, P2)
+        items.append({
+            "idx": idx,
+            "status": "skip_card" if card else "pending_refs",
+            "output": str(D / f"wr{idx:02d}.png"),
+            "references": refs,
+            "references_present": all(Path(ref).is_file() for ref in refs),
+            "prompt": prompt,
+        })
+    return {
+        "schema_version": "1.0",
+        "project_id": pid,
+        "source": str(sub(pid, "storyboard.json", create=False)),
+        "status": "pending",
+        "mode": "dry_run",
+        "items": items,
+        "notes": [
+            "本计划不调用图片 API，不产生费用",
+            "补齐 repl_P1/repl_P2 定妆图后，再逐镜生成关键帧",
+            "card 镜头不生成关键帧，直接人工检查其文字/版式",
+        ],
+    }
+
+
+async def main(pid: str, dry_run: bool = False) -> None:
     sb = read_json(sub(pid, "storyboard.json", create=False))
+    if not isinstance(sb, dict):
+        raise RuntimeError(f"找不到合法 storyboard：{pid}")
+    if dry_run:
+        plan = build_plan(pid, sb)
+        out = write_json(sub(pid, "qc", "weak_reconstruction_plan.json"), plan)
+        print(f"dry-run plan → {out} ({len(plan['items'])} shots)")
+        return
+
     D = sub(pid, "gen", "images", create=True)
     D.mkdir(parents=True, exist_ok=True)
-    P1, P2 = str(D / "repl_P1.png"), str(D / "repl_P2.png")
+    refs_by_id = reference_paths(pid, sb)
+    P1, P2 = refs_by_id["P1"], refs_by_id["P2"]
     for shot in sb["shots"]:
         idx = shot["idx"]
         out = D / f"wr{idx:02d}.png"
@@ -76,4 +139,8 @@ async def main(pid: str) -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main(sys.argv[1]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("project_id")
+    parser.add_argument("--dry-run", action="store_true", help="只生成关键帧计划，不调用图片 API")
+    args = parser.parse_args()
+    asyncio.run(main(args.project_id, args.dry_run))

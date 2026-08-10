@@ -32,18 +32,34 @@ def main(pid: str, desc_dir: str) -> None:
             desc[d["idx"]] = d
 
     out_shots = []
+
+    def clipped_t(raw: object, start: float, end: float) -> list[float]:
+        if not isinstance(raw, list) or len(raw) != 2:
+            raise ValueError(f"时间轴不是 [start, end]：{raw!r}")
+        a, b = float(raw[0]), float(raw[1])
+        return [round(max(start, a), 3), round(min(end, b), 3)]
+
     for s in shots:
-        idx, (t0, t1) = s["idx"], s["t"]
+        idx = s.get("idx", len(out_shots))
+        # 正式 MCP 输出 t；历史 r5-r8 提取脚本输出 t_start/t_end。
+        raw_t = s.get("t")
+        if not (isinstance(raw_t, list) and len(raw_t) == 2):
+            raw_t = [s.get("t_start"), s.get("t_end")]
+        if not all(isinstance(x, (int, float)) for x in raw_t):
+            raise ValueError(f"shots[{idx}] 缺少合法时间轴")
+        t0, t1 = map(float, raw_t)
         d = desc.get(idx, {})
         cam = d.get("camera", {})
         mv = motion.get(idx, {})
-        dialogue = [{"speaker": None, "text": x["text"], "t": x["t"]}
+        dialogue = [{"speaker": x.get("spk"), "text": x["text"],
+                     "t": clipped_t(x["t"], t0, t1)}
                     for x in segs if x["t"][0] < t1 and x["t"][1] > t0]
-        overlay = [{"text": x["text"], "t": x["t"],
+        overlay = [{"text": x["text"], "t": clipped_t(x["t"], t0, t1),
                     "pos": ("顶部" if x["y"] < 0.25 else "中部" if x["y"] < 0.7 else "底部字幕")}
                    for x in ocr if x["t"][0] < t1 and x["t"][1] > t0 and 0.08 < x["y"] < 0.9]
         out_shots.append({
-            "idx": idx, "t": s["t"], "duration": s["duration"],
+            "idx": idx, "t": [round(t0, 3), round(t1, 3)],
+            "duration": round(t1 - t0, 3),
             "camera": {"size": cam.get("size"), "move": cam.get("move"),
                        "move_cv": mv.get("label"), "angle": cam.get("angle")},
             "scene": d.get("scene"),
@@ -55,8 +71,9 @@ def main(pid: str, desc_dir: str) -> None:
         })
 
     sb = {
-        "meta": {"source": pid, "duration": meta.get("duration"),
-                 "resolution": f'{meta.get("width")}x{meta.get("height")}',
+        "meta": {"source": pid, "duration": meta.get("duration") or (out_shots[-1]["t"][1] if out_shots else 0),
+                 "resolution": (f'{meta["width"]}x{meta["height"]}'
+                                if meta.get("width") and meta.get("height") else None),
                  "fps": meta.get("fps"), "title": meta.get("title"), "bgm": None},
         "global": {"genre": None, "tone": None, "characters": []},
         "shots": out_shots,
