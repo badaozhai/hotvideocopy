@@ -21,6 +21,31 @@ uv venv --python 3.12 .venv && uv pip install -e .
 > Python 锁 3.11–3.13。3.14 上 opencv / torch 生态 wheel 覆盖还不全，
 > `scenedetect` 与后续的 ASR 依赖都会装不上。
 
+### 本地视频模型（按需下载）
+
+本机姿态重绘路线不是 Grok 流程的必需依赖。需要恢复本机生成时，先配置可用的 `HVC_HF_TOKEN`（或 `HF_TOKEN`）和可选的 `HVC_PROXY`，再执行：
+
+```bash
+.venv/bin/python scripts/dance_local_models.py --dry-run
+.venv/bin/python scripts/dance_local_models.py
+```
+
+脚本会下载 DreamShaper 8、DreamShaper 8 LCM、OpenPose ControlNet、IP-Adapter Plus SD1.5、InsightFace `buffalo_l` 和 `inswapper_128`，并把校验清单写到 `workspace/dy_7671559890300685604/local_models_manifest.json`。默认不保留 InsightFace 压缩包；完整安装约需 8.5 GiB 临时空间，安装后约 8.2 GiB。下载方法保存在 [scripts/dance_local_models.py](scripts/dance_local_models.py)。
+
+### 本地语音、配乐与口型模型
+
+本地媒体模型统一保存在 `workspace/.local_ai/`，使用隔离运行环境，单次任务结束后释放内存但保留模型文件。成功安装的模型默认长期复用，不会在交付后自动清理；只有明确执行 `purge` 才会删除。安装与推理过程都会保留至少 1 GiB 可用磁盘空间。
+
+```bash
+.venv/bin/python scripts/local_media_models.py status
+.venv/bin/python scripts/local_media_models.py estimate voice --variant custom
+.venv/bin/python scripts/local_media_models.py install voice --variant custom
+.venv/bin/python scripts/local_media_models.py install music
+.venv/bin/python scripts/local_media_models.py install lipsync --variant mlx
+```
+
+下载会先测试直连；直连过慢时再比较 `.env` 配置的代理与 `http://127.0.0.1:8080`，使用实测最快的可用线路，并保留可续传的 Hugging Face 缓存。
+
 ## 配置
 
 复制 `.env.example` 为 `.env` 填 Key，或直接在 MCP 配置的 `env` 段注入：

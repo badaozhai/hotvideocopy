@@ -12,6 +12,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.types import ImageContent, TextContent
 
 from . import __version__, asr, douyin, images, ingest, ocr, shots, speech, timeline
+from . import local_models
 from . import video as video_api  # 别直接 import video：多个工具有叫 video 的参数，会遮蔽
 from .config import CONFIG
 from .media import probe
@@ -192,16 +193,120 @@ async def gen_video_extend(
 
 @mcp.tool()
 async def tts(text: str, voice: str = "", project_id: str = "", name: str = "",
-              speed: float = 1.0, model: str = "") -> dict:
-    """文字转语音，落 gen/tts/<name>.mp3。双引擎：网关 OpenAI 协议优先，404 自动落 edge-tts。
+              speed: float = 1.0, model: str = "", engine: str = "",
+              pitch: int = 0, volume: int = 0, style: str = "",
+              instruction: str = "", language: str = "Chinese",
+              reference_audio: str = "", reference_text: str = "",
+              consent: bool = False) -> dict:
+    """文字转语音。优先本地 Qwen3-TTS，也可明确选择 API 或 Edge。
 
     返回带 duration 和 engine——写 timeline 排人声落点全靠 duration。
-    voice 认两套写法：OpenAI 名（alloy/echo/onyx/nova/shimmer，会映射到对应中文音色）
-    或直接 edge 音色名（zh-CN-YunxiNeural 男口播 / zh-CN-XiaoxiaoNeural 女声）。
-    speed 1.1–1.3 是抖音口播常用语速。
+    engine 可选 auto/local/api/edge。安装了本地模型时 auto 默认使用 Qwen3-TTS。
+    本地预设音色：Vivian、Serena、Uncle_Fu、Dylan（北京话）、Eric（四川话）。
+    instruction 用自然语言控制情绪、语气、停顿和方言；language 支持 Chinese、
+    Beijing_Dialect、Sichuan_Dialect 等。speed 0.5–2.0。
+    reference_audio + reference_text 开启音色克隆，必须 consent=true 确认已获授权。
+    pitch 是音高 Hz 偏移，volume 是音量百分比偏移，style 可选自然/温柔/活泼/沉稳/悬疑。
+    Edge 引擎支持在文本里写 [停顿=0.5s]、[强调]...[/强调] 等标签。
     逐句合成（一句一个文件），装配时按 at 落点铺，比整段合成好对时间轴。
     """
-    return await speech.tts(text, voice, project_id, name, speed, model)
+    return await speech.tts(
+        text, voice, project_id, name, speed, model,
+        engine=engine, pitch=pitch, volume=volume, style=style,
+        instruction=instruction, language=language,
+        reference_audio=reference_audio, reference_text=reference_text,
+        consent=consent,
+    )
+
+
+@mcp.tool()
+def local_media_model_status() -> dict:
+    """查看本地语音、音乐和口型模型的安装状态、磁盘占用与内存生命周期策略。"""
+    return local_models.status()
+
+
+@mcp.tool()
+def local_media_model_estimate(component: str, variant: str = "") -> dict:
+    """安装前估算磁盘；component 为 voice/music/lipsync。"""
+    return local_models.estimate_install(component, variant)
+
+
+@mcp.tool()
+def local_media_model_install(component: str, variant: str = "") -> dict:
+    """按需安装本地模型。语音 variant=custom/clone；口型 variant=mlx/cuda。"""
+    return local_models.install(component, variant)
+
+
+@mcp.tool()
+def local_media_model_purge(component: str, variant: str = "", keep_runtime: bool = False) -> dict:
+    """清理 workspace/.local_ai 下指定模型；不会触碰项目素材或系统缓存。"""
+    return local_models.purge(component, variant, keep_runtime)
+
+
+@mcp.tool()
+async def local_music_generate(
+    prompt: str,
+    project_id: str,
+    name: str = "",
+    lyrics: str = "",
+    instrumental: bool = False,
+    vocal_language: str = "zh",
+    duration: float = 30.0,
+    bpm: int | None = None,
+    key_scale: str = "",
+    time_signature: str = "4",
+    thinking: bool = False,
+    inference_steps: int = 8,
+    seed: int = -1,
+) -> dict:
+    """用本机 ACE-Step 1.5 生成歌曲或配乐，任务结束即释放模型内存。"""
+    from .local_music import generate
+
+    return await generate(
+        prompt=prompt,
+        project_id=project_id,
+        name=name,
+        lyrics=lyrics,
+        instrumental=instrumental,
+        vocal_language=vocal_language,
+        duration=duration,
+        bpm=bpm,
+        key_scale=key_scale,
+        time_signature=time_signature,
+        thinking=thinking,
+        inference_steps=inference_steps,
+        seed=seed,
+    )
+
+
+@mcp.tool()
+async def local_lipsync(
+    video: str,
+    audio: str,
+    project_id: str,
+    name: str = "",
+    resolution: int = 256,
+    inference_steps: int = 20,
+    guidance_scale: float = 1.5,
+    seed: int = 1247,
+    audio_offset: float = 0.0,
+    enforce_single_face: bool = True,
+) -> dict:
+    """用本机 LatentSync MLX 为单人镜头做逐镜口型，任务结束即释放模型内存。"""
+    from .lipsync import sync
+
+    return await sync(
+        video=video,
+        audio=audio,
+        project_id=project_id,
+        name=name,
+        resolution=resolution,
+        inference_steps=inference_steps,
+        guidance_scale=guidance_scale,
+        seed=seed,
+        audio_offset=audio_offset,
+        enforce_single_face=enforce_single_face,
+    )
 
 
 @mcp.tool()

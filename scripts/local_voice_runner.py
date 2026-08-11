@@ -43,15 +43,13 @@ def first_audio(results) -> tuple[np.ndarray, int]:
 def main() -> None:
     request = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
     model = load_model(request["model_id"])
-    generate = model.generate
-    common = {
-        "text": request["text"],
-        "language": request.get("language"),
-        "lang_code": request.get("language"),
-        "instruct": request.get("instruction"),
-        "instruction": request.get("instruction"),
-    }
     if request.get("mode") == "clone":
+        generate = model.generate
+        common = {
+            "text": request["text"],
+            "language": request.get("language"),
+            "lang_code": request.get("language"),
+        }
         common.update({
             "ref_audio": request.get("reference_audio"),
             "reference_audio": request.get("reference_audio"),
@@ -59,8 +57,16 @@ def main() -> None:
             "reference_text": request.get("reference_text"),
         })
     else:
-        common["voice"] = request.get("voice")
-        common["speaker"] = request.get("voice")
+        generate = getattr(model, "generate_custom_voice", model.generate)
+        common = {
+            "text": request["text"],
+            "language": request.get("language"),
+            "lang_code": request.get("language"),
+            "instruct": request.get("instruction"),
+            "instruction": request.get("instruction"),
+            "voice": request.get("voice"),
+            "speaker": request.get("voice"),
+        }
 
     kwargs = accepted_kwargs(generate, common)
     if "text" in inspect.signature(generate).parameters:

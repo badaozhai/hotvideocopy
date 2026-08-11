@@ -16,7 +16,8 @@ timeline.json 由 Claude 写（内置 Write/Edit），本工具只忠实执行�
   ],
   "audio": [                       // 叠加铺音，全部混到一轨
     { "src": "gen/tts/line0.mp3", "at": 0.2 },             // at=落点秒
-    { "src": "assets/bgm.mp3", "at": 0, "gain_db": -12, "loop": true },
+    { "src": "assets/bgm.mp3", "at": 0, "duration": 30,
+      "gain_db": -12, "loop": true, "fade_in": 0.5, "fade_out": 1.5 },
     { "src": "x.wav", "trim": [3, 8], "at": 10 }           // 先裁再落
   ],
   "subtitles": "subs.ass"          // 可选，烧硬字幕（.ass/.srt）
@@ -102,22 +103,32 @@ async def assemble(timeline: str) -> dict:
     norm = (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
             f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps={fps}")
     parts: list[Path] = []
+    timeline_clock = 0.0
     for i, c in enumerate(clips):
         src = _resolve_asset(c.get("src", ""), pid)
         sdur = float((await probe(src)).get("duration") or 0)
         trim = c.get("trim")
         args = ["-y"]
+        frame_limit: int | None = None
         if trim:
             ss, to = float(trim[0]), float(trim[1])
             if to <= ss:
                 raise RuntimeError(f"video[{i}] trim 起止颠倒：{trim}")
             if sdur and to > sdur + 0.05:
                 warnings.append(f"video[{i}] trim 到 {to}s 但素材只有 {sdur}s，按素材末尾截断")
-            args += ["-ss", f"{ss:.3f}", "-i", str(src), "-t", f"{to - ss:.3f}"]
+            requested = to - ss
+            # 30fps 无法表示 4.55 这样的非整数帧时长。按累计时间取帧边界，
+            # 把半帧误差分摊到相邻片段，避免25镜逐段向上取整后累积漂移。
+            start_frame = round(timeline_clock * fps)
+            timeline_clock += requested
+            end_frame = round(timeline_clock * fps)
+            frame_limit = max(1, end_frame - start_frame)
+            args += ["-ss", f"{ss:.3f}", "-i", str(src)]
         else:
             args += ["-i", str(src)]
         part = tmp / f"clip_{i:03d}.mp4"
-        rc, _, err = await run(ffmpeg_bin(), *args, "-vf", norm, "-an",
+        frame_args = ["-frames:v", str(frame_limit)] if frame_limit is not None else []
+        rc, _, err = await run(ffmpeg_bin(), *args, *frame_args, "-vf", norm, "-an",
                                "-c:v", "libx264", "-crf", "18", "-preset", "fast",
                                "-pix_fmt", "yuv420p", str(part), timeout=1800)
         if rc != 0 or not part.is_file():
@@ -164,6 +175,8 @@ async def assemble(timeline: str) -> dict:
     amaps: list[str] = []
     for j, a in enumerate(tracks):
         src = _resolve_asset(a.get("src", ""), pid)
+        at = float(a.get("at") or 0)
+        requested_duration = float(a.get("duration") or 0)
         if a.get("loop"):
             args += ["-stream_loop", "-1"]
         args += ["-i", str(src)]
@@ -172,11 +185,27 @@ async def assemble(timeline: str) -> dict:
         if trim:
             chain.append(f"atrim={float(trim[0]):.3f}:{float(trim[1]):.3f},asetpts=PTS-STARTPTS")
         if a.get("loop"):
-            chain.append(f"atrim=0:{vdur:.3f}")
+            requested_duration = requested_duration or max(0.001, vdur - at)
+            chain.append(f"atrim=0:{requested_duration:.3f}")
+        elif requested_duration:
+            chain.append(f"atrim=0:{requested_duration:.3f}")
+        fade_in = max(0.0, float(a.get("fade_in") or 0))
+        fade_out = max(0.0, float(a.get("fade_out") or 0))
+        if fade_in:
+            chain.append(f"afade=t=in:st=0:d={fade_in:.3f}")
+        if fade_out:
+            effective_duration = requested_duration
+            if not effective_duration and trim:
+                effective_duration = float(trim[1]) - float(trim[0])
+            if effective_duration <= fade_out:
+                raise RuntimeError(f"audio[{j}] fade_out 必须短于音轨时长")
+            chain.append(
+                f"afade=t=out:st={effective_duration - fade_out:.3f}:d={fade_out:.3f}"
+            )
         gain = float(a.get("gain_db") or 0)
         if gain:
             chain.append(f"volume={gain}dB")
-        at_ms = int(float(a.get("at") or 0) * 1000)
+        at_ms = int(at * 1000)
         if at_ms:
             chain.append(f"adelay={at_ms}:all=1")
         fparts.append(f"[{j + 1}:a]{','.join(chain)}[a{j}]")
