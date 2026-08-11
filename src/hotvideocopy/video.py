@@ -259,6 +259,16 @@ async def get(request_id: str) -> dict:
         resp = await c.get(_status_endpoint(request_id), headers=auth_headers(_key()),
                            timeout=httpx.Timeout(30.0))
 
+    if resp.status_code == 202:
+        # xAI 状态接口在生成中会用 202 返回 progress，而不是 200 + status。
+        pending = resp.json() or {}
+        return {
+            "status": "pending",
+            "request_id": request_id,
+            "upstream_status": pick_status(pending) or "processing",
+            "progress": pending.get("progress"),
+        }
+
     if resp.status_code != 200:
         raw = f"HTTP {resp.status_code}: {resp.text[:300]}"
         if resp.status_code in RETRIABLE_STATUS:
