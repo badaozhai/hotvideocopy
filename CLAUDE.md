@@ -36,8 +36,12 @@ workspace/<project_id>/
 ├── gen/
 │   ├── images/         # gpt-image-2 产出的分镜首帧
 │   └── clips/          # grok 产出的视频片段
+├── references/         # 角色身份板、定妆图和场景参考
+├── motion/             # 姿态轨、控制片和动作 QA
+├── motion_segments/    # 按镜头或段落切出的姿态控制视频
 ├── timeline.json       # 装配指令，Claude 写，assemble 消费
-├── production.json      # 目标成片的选片、返工、QC、交付档案
+├── production.json     # 目标成片的选片、返工、QC、交付档案
+├── production.md       # 创意项目的剧本、定妆与镜头约束
 ├── qc/                  # 拼墙、探针和人工验收产物
 └── output.mp4
 ```
@@ -197,6 +201,36 @@ def get_frames(video: str, timestamps: list[float]) -> list[ImageContent]:
 
 `duration` 只能整数秒，原片镜头常是 2.37s 这种小数。
 **生成时向上取整，装配时用 ffmpeg 精确裁到 DNA 时间轴** —— 节奏才对得上原片。
+
+---
+
+## 已落地的视频制作链路（2026-08）
+
+### 舞蹈复刻：姿态驱动 + 外部编辑 + 本地装配
+
+`docs/dance_video_pipeline.md` 是当前可复用的操作说明。核心脚本如下：
+
+| 环节 | 脚本 | 结果 |
+|---|---|---|
+| 双角色动作提取 | `scripts/dance_pose_extract.py` | 478 帧角色锁定动作轨和控制视频 |
+| 角色身份参考 | `scripts/dance_identity_boards.py` | 孙悟空、嫦娥的身份板 |
+| 外部视频编辑 | `scripts/dance_external_edit.py` | 三段控制片提交、轮询和下载 |
+| 成片装配 | `scripts/dance_assemble.py` | 30fps、1254x720、478 帧、原 BGM 回铺 |
+| 最终质检 | `scripts/dance_final_qc.py` | 帧数、规格、OCR、控制色和音频一致性 |
+
+该链路的输入、控制片、角色图和输出全部只留在 `workspace/`，不提交 Git。视频接口的状态查询可能以 HTTP 202 返回生成进度，`hotvideocopy.video.get()` 已兼容该响应。
+
+### 本地模型策略
+
+本地 SD1.5 姿态重绘只用于试验或补救，不常驻硬盘。`scripts/dance_local_models.py` 提供 `--dry-run` 和按需下载；模型验证后可以删除 `workspace/<project_id>/local_models/`，下次再按脚本下载。`dance_local_repaint.py`、`dance_local_face_refine.py` 和 `dance_local_face_swap.py` 是单帧质量验证工具，不应被当作整片默认生产路线。
+
+### 图像服务
+
+图片生成优先经项目的 `hotvideocopy.images.generate()` 调用已配置网关，产物落在 `workspace/<project_id>/gen/images/`。运行时从 `.env` 读取网关地址、Key、代理和模型选择；不得输出、复制或提交任何凭据。图像接口串行排队，避免上游并发导致 502。
+
+### 当前创作项目：虚构农村恐龙养殖采访
+
+工作区为 `workspace/dinosaur_farm_interview/`，制作档案为 `production.md`。这是明确虚构的新闻纪实风短片：第一人称记者手持拍摄、轻微自然抖动、真实农村材质与自然光、快速多镜头切换。禁止媒体台标、字幕、水印、可读招牌、卡通恐龙、主题公园和科幻实验室画风。先锁定人物、场景和动物定妆，再使用它们生成分镜首帧与视频。
 
 ---
 
