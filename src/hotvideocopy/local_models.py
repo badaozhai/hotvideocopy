@@ -9,6 +9,8 @@ purge.
 
 from __future__ import annotations
 
+import asyncio
+import fcntl
 import json
 import os
 import platform
@@ -17,9 +19,11 @@ import subprocess
 import sys
 import tempfile
 import time
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import asdict, dataclass
+from functools import wraps
 from pathlib import Path
+from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 import httpx
 
@@ -33,7 +37,7 @@ MODELS_ROOT = LOCAL_AI_ROOT / "models"
 CACHE_ROOT = LOCAL_AI_ROOT / "cache"
 JOBS_ROOT = LOCAL_AI_ROOT / "jobs"
 INSTALL_MANIFEST = LOCAL_AI_ROOT / "install_manifest.json"
-INSTALL_LOCK = LOCAL_AI_ROOT / ".install.lock"
+MODEL_TASK_LOCK = LOCAL_AI_ROOT / ".model-task.lock"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FETCH_RUNNER = REPO_ROOT / "scripts" / "local_model_fetch.py"
 LIPSYNC_RUNNER = REPO_ROOT / "scripts" / "local_lipsync_runner.py"
@@ -43,10 +47,15 @@ MIN_FREE_RESERVE = GIB
 DOWNLOAD_PROBE_BYTES = 2 * 1024 * 1024
 DIRECT_MIN_BYTES_PER_SECOND = 1024 * 1024
 LOCAL_MODEL_PROXY = "http://127.0.0.1:8080"
+MODEL_TASK_POLL_SECONDS = 0.25
+MODEL_TASK_WAIT_TIMEOUT = 12 * 60 * 60
 DOWNLOAD_PROBE_URL = (
     "https://huggingface.co/mlx-community/"
     "Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit/resolve/main/model.safetensors"
 )
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 @dataclass(frozen=True)
@@ -130,8 +139,9 @@ CATALOG: dict[str, ModelSpec] = {
         memory="官方低显存档小于 6 GB",
         license="MIT",
         hardware="Apple Silicon MLX / CUDA / CPU",
-        capabilities=("歌词", "段落结构", "BPM", "调式", "拍号", "1000+乐器风格", "重绘", "分轨"),
+        capabilities=("歌词", "段落结构", "BPM", "调式", "拍号", "提示词乐器与风格", "翻唱", "重绘"),
         default=True,
+        notes="当前安装 Turbo 版；分轨、Lego 和补全只属于未安装的 Base 版。",
     ),
     "latentsync-mlx-1.5": ModelSpec(
         id="latentsync-mlx-1.5",
@@ -264,44 +274,103 @@ def _drop_install_records(component: str, variants: set[str] | None = None) -> N
     _write_manifest(data)
 
 
-def _pid_running(pid: int) -> bool:
-    if pid <= 0:
-        return False
+def _lock_holder() -> dict:
     try:
-        os.kill(pid, 0)
-        return True
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
+        value = json.loads(MODEL_TASK_LOCK.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def _try_model_task_lock(task: str) -> int | None:
+    ensure_layout()
+    fd = os.open(MODEL_TASK_LOCK, os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        return None
+    payload = {
+        "pid": os.getpid(),
+        "task": str(task or "local-model-task"),
+        "started_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+    }
+    os.ftruncate(fd, 0)
+    os.lseek(fd, 0, os.SEEK_SET)
+    os.write(fd, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+    return fd
+
+
+def _release_model_task_lock(fd: int) -> None:
+    try:
+        os.ftruncate(fd, 0)
+        fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+
+
+def _lock_timeout_message(task: str) -> str:
+    holder = _lock_holder()
+    active = str(holder.get("task") or "另一个本地模型任务")
+    pid = int(holder.get("pid") or 0)
+    suffix = f"（PID {pid}）" if pid else ""
+    return f"{task} 等待本地模型队列超时；当前任务：{active}{suffix}"
+
+
+@contextmanager
+def model_task_guard(task: str, wait_timeout: float = MODEL_TASK_WAIT_TIMEOUT):
+    """Serialize every heavyweight local-model operation across processes."""
+    deadline = time.monotonic() + max(0.0, float(wait_timeout))
+    fd: int | None = None
+    while fd is None:
+        fd = _try_model_task_lock(task)
+        if fd is not None:
+            break
+        if time.monotonic() >= deadline:
+            raise RuntimeError(_lock_timeout_message(task))
+        time.sleep(MODEL_TASK_POLL_SECONDS)
+    try:
+        yield
+    finally:
+        _release_model_task_lock(fd)
+
+
+@asynccontextmanager
+async def async_model_task_guard(task: str, wait_timeout: float = MODEL_TASK_WAIT_TIMEOUT):
+    """Async queue for voice, music and lip-sync entry points."""
+    deadline = time.monotonic() + max(0.0, float(wait_timeout))
+    fd: int | None = None
+    while fd is None:
+        fd = _try_model_task_lock(task)
+        if fd is not None:
+            break
+        if time.monotonic() >= deadline:
+            raise RuntimeError(_lock_timeout_message(task))
+        await asyncio.sleep(MODEL_TASK_POLL_SECONDS)
+    try:
+        yield
+    finally:
+        _release_model_task_lock(fd)
+
+
+def serialized_model_task(task: str) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+    """Queue an async model entry point behind the shared process lock."""
+    def decorate(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+        @wraps(func)
+        async def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
+            async with async_model_task_guard(task):
+                return await func(*args, **kwargs)
+
+        return wrapped
+
+    return decorate
 
 
 @contextmanager
 def install_guard():
-    """Serialize installs and purges so caches cannot be removed mid-download."""
-    ensure_layout()
-    try:
-        fd = os.open(INSTALL_LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    except FileExistsError:
-        try:
-            lock = json.loads(INSTALL_LOCK.read_text(encoding="utf-8"))
-            pid = int(lock.get("pid") or 0)
-        except (OSError, ValueError, TypeError):
-            pid = 0
-        if _pid_running(pid):
-            raise RuntimeError(f"另一个本地模型任务正在运行（PID {pid}）") from None
-        INSTALL_LOCK.unlink(missing_ok=True)
-        fd = os.open(INSTALL_LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    try:
-        os.write(fd, json.dumps({"pid": os.getpid(), "at": time.time()}).encode("utf-8"))
-        os.close(fd)
+    """Keep installs and purges mutually exclusive with inference jobs."""
+    with model_task_guard("模型安装或显式清理"):
         yield
-    finally:
-        try:
-            os.close(fd)
-        except OSError:
-            pass
-        INSTALL_LOCK.unlink(missing_ok=True)
 
 
 def _dir_size(path: Path) -> int:
@@ -764,16 +833,25 @@ def _install_lipsync(variant: str) -> list[dict]:
 
 def install(component: str, variant: str = "") -> dict:
     selected, model_keys = component_variant(component, variant)
-    estimate = estimate_install(component, selected)
-    if not estimate["enough_space"]:
-        need_gib = estimate["estimated_additional_bytes"] / GIB
-        free_gib = estimate["free_bytes"] / GIB
-        raise RuntimeError(
-            f"磁盘空间不足：{component}/{selected} 预计还需 {need_gib:.1f} GiB，"
-            f"当前可用 {free_gib:.1f} GiB，且必须保留 1 GiB 安全余量。"
-        )
     with install_guard():
-        if component == "voice":
+        reused_cache = all(model_installed(CATALOG[key]) for key in model_keys)
+        estimate = estimate_install(component, selected)
+        if not reused_cache and not estimate["enough_space"]:
+            need_gib = estimate["estimated_additional_bytes"] / GIB
+            free_gib = estimate["free_bytes"] / GIB
+            raise RuntimeError(
+                f"磁盘空间不足：{component}/{selected} 预计还需 {need_gib:.1f} GiB，"
+                f"当前可用 {free_gib:.1f} GiB，且必须保留 1 GiB 安全余量。"
+            )
+        if reused_cache:
+            routes = [{
+                "selected": "cache",
+                "actual": "cache",
+                "model": key,
+                "probes": [],
+                "network_used": False,
+            } for key in model_keys]
+        elif component == "voice":
             routes = _install_voice(selected, model_keys)
         elif component == "music":
             routes = _install_music()
@@ -785,6 +863,8 @@ def install(component: str, variant: str = "") -> dict:
         "action": "install",
         **estimate,
         "download_routes": routes,
+        "reused_cache": reused_cache,
+        "network_used": not reused_cache,
         "installed": {key: model_installed(CATALOG[key]) for key in model_keys},
         "root": str(LOCAL_AI_ROOT),
         "free_bytes": shutil.disk_usage(CONFIG.workspace).free,
@@ -800,13 +880,23 @@ def _remove(path: Path) -> int:
     return size
 
 
-def purge(component: str, variant: str = "", keep_runtime: bool = False) -> dict:
+def purge(
+    component: str,
+    variant: str = "",
+    keep_runtime: bool = False,
+    confirm_explicit_user_request: bool = False,
+) -> dict:
+    if not confirm_explicit_user_request:
+        raise RuntimeError(
+            "模型永久保留策略已启用；只有用户明确要求清理时，才能设置 "
+            "confirm_explicit_user_request=true"
+        )
     component = str(component or "").strip().lower()
     if component == "all":
         with install_guard():
             freed = _dir_size(LOCAL_AI_ROOT)
             for child in list(LOCAL_AI_ROOT.iterdir()):
-                if child != INSTALL_LOCK:
+                if child != MODEL_TASK_LOCK:
                     _remove(child)
         return {"ok": True, "action": "purge", "component": "all", "freed_bytes": freed}
 
@@ -942,6 +1032,8 @@ def status() -> dict:
         "root": str(LOCAL_AI_ROOT),
         "retention_policy": "persistent_until_explicit_purge",
         "automatic_cleanup": False,
+        "model_task_scheduler": "cross-process-exclusive-queue",
+        "purge_requires_explicit_user_confirmation": True,
         "hardware": hardware_info(),
         "disk_bytes": _dir_size(LOCAL_AI_ROOT),
         "runtimes": {

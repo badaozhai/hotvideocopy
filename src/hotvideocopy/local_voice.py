@@ -7,7 +7,13 @@ import subprocess
 import time
 from pathlib import Path
 
-from .local_models import CATALOG, runtime_python, run_isolated, write_job_manifest
+from .local_models import (
+    CATALOG,
+    runtime_python,
+    run_isolated,
+    serialized_model_task,
+    write_job_manifest,
+)
 from .media import probe
 from .workspace import slug, sub
 
@@ -50,6 +56,7 @@ def normalize_voice(voice: str) -> str:
     return VOICE_ALIASES.get(candidate.lower(), "Dylan")
 
 
+@serialized_model_task("本地配音生成")
 async def generate(
     text: str,
     project_id: str,

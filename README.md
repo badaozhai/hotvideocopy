@@ -34,7 +34,7 @@ uv venv --python 3.12 .venv && uv pip install -e .
 
 ### 本地语音、配乐与口型模型
 
-本地媒体模型统一保存在 `workspace/.local_ai/`，使用隔离运行环境，单次任务结束后释放内存但保留模型文件。成功安装的模型默认长期复用，不会在交付后自动清理；只有明确执行 `purge` 才会删除。安装与推理过程都会保留至少 1 GiB 可用磁盘空间。
+本地媒体模型统一保存在 `workspace/.local_ai/`，使用隔离运行环境。单次任务结束只释放内存，模型文件和运行环境永久保留；重复安装会直接复用完整缓存，不测速、不联网、不重装。配音、配乐、口型、安装和显式清理共用跨进程队列，任何时刻只加载一个大模型。安装与推理过程都会保留至少 1 GiB 可用磁盘空间。
 
 ```bash
 .venv/bin/python scripts/local_media_models.py status
@@ -45,6 +45,8 @@ uv venv --python 3.12 .venv && uv pip install -e .
 ```
 
 下载会先测试直连；直连过慢时再比较 `.env` 配置的代理与 `http://127.0.0.1:8080`，使用实测最快的可用线路，并保留可续传的 Hugging Face 缓存。
+
+清理命令默认拒绝删除。只有用户再次明确要求清理时，调用方才可额外传 `--confirm-explicit-user-request`。模型选择依据、已验证能力和真实边界见 [docs/local_media_models.md](docs/local_media_models.md)。
 
 ## 配置
 
@@ -82,7 +84,9 @@ uv venv --python 3.12 .venv && uv pip install -e .
 | `gen_video_start(...)` | 生成 | grok，**发起即返回 request_id，不阻塞** |
 | `gen_video_get(id)` | 生成 | 查状态，done 当场落盘（上游是临时链接） |
 | `gen_video_extend(...)` | 生成 | 从末帧续接，超 15s 长镜用 |
-| `tts(text, voice)` | 生成 | 网关 TTS 优先，edge-tts 兜底，返回实际时长 |
+| `tts(text, voice)` | 生成 | 已安装时优先本地 Qwen3-TTS；支持情感指令、北京话、四川话与授权音色克隆 |
+| `local_music_generate(...)` | 生成 | 本地 ACE-Step Turbo 歌曲/配乐，支持歌词结构、BPM、调式、拍号和风格提示 |
+| `local_lipsync(...)` | 后期 | 本地 LatentSync MLX 单人逐镜口型同步 |
 | `assemble(timeline)` | 装配 | 精确裁切、统一规格、铺音、可选字幕 |
 | `gen_video_jobs()` | 运维 | 任务清单打捞——会话断了片不会变孤儿 |
 | `workspace_info()` | 运维 | 配置与工作区状态自检 |
@@ -107,6 +111,10 @@ uv venv --python 3.12 .venv && uv pip install -e .
 - 0.75–1.35 倍后期无损时长调节，试听、下载和最近导出记录
 - 配置了 `HVC_BASE_URL` 与 `HVC_API_KEY` 时，用 AI 网关润色台词；没有配置时退回本地断句
 - 页面仅提供安装入口；安装成功后显示“已安装 · 永久保留”，不会自动清理模型
+
+## 本地歌曲与配乐
+
+ACE-Step 1.5 Turbo 支持无歌词配乐、带歌词歌曲、BPM、调式、拍号，以及提示词里的乐器和演唱风格。歌词可直接写 `[Verse]`、`[Chorus]`、`[Bridge]` 标签，也可给 `local_music_generate` 传 `structure="ABBA"` 和 `sections` 自动展开 AABA、ABBA、BAB 等段落。当前 Turbo 只开放已经验证的 `text2music`、`cover`、`repaint`；分轨、Lego 和补全属于未安装的 Base 版，不会误报为当前能力。
 
 **没有** dna.json 的读写工具：那是普通文件，用内置 Read/Edit 改。
 **没有** 转码/裁剪工具：直接 Bash ffmpeg。

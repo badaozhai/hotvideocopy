@@ -42,10 +42,15 @@ def main() -> None:
     add.add_argument("component", choices=("voice", "music", "lipsync"))
     add.add_argument("--variant", default="")
 
-    remove = commands.add_parser("purge", help="移除一个组件的模型与运行时")
+    remove = commands.add_parser("purge", help="按用户明确要求移除一个组件的模型与运行时")
     remove.add_argument("component", choices=("voice", "music", "lipsync", "all"))
     remove.add_argument("--variant", default="")
     remove.add_argument("--keep-runtime", action="store_true", help="只清模型权重，保留 Python 运行时")
+    remove.add_argument(
+        "--confirm-explicit-user-request",
+        action="store_true",
+        help="确认这是用户明确要求的清理操作；未提供时拒绝删除",
+    )
 
     args = parser.parse_args(raw_args)
     args.json = compact_json
@@ -62,7 +67,12 @@ def main() -> None:
         elif args.command == "install":
             result = install(args.component, args.variant)
         else:
-            result = purge(args.component, args.variant, args.keep_runtime)
+            result = purge(
+                args.component,
+                args.variant,
+                args.keep_runtime,
+                args.confirm_explicit_user_request,
+            )
         _print(result, args.json)
     except Exception as exc:
         _print({"ok": False, "error": str(exc)}, args.json)

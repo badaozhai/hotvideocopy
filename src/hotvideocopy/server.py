@@ -238,9 +238,19 @@ def local_media_model_install(component: str, variant: str = "") -> dict:
 
 
 @mcp.tool()
-def local_media_model_purge(component: str, variant: str = "", keep_runtime: bool = False) -> dict:
-    """清理 workspace/.local_ai 下指定模型；不会触碰项目素材或系统缓存。"""
-    return local_models.purge(component, variant, keep_runtime)
+def local_media_model_purge(
+    component: str,
+    variant: str = "",
+    keep_runtime: bool = False,
+    confirm_explicit_user_request: bool = False,
+) -> dict:
+    """仅在用户明确要求并确认后清理本地模型；默认拒绝删除。"""
+    return local_models.purge(
+        component,
+        variant,
+        keep_runtime,
+        confirm_explicit_user_request,
+    )
 
 
 @mcp.tool()
@@ -249,6 +259,8 @@ async def local_music_generate(
     project_id: str,
     name: str = "",
     lyrics: str = "",
+    structure: str = "",
+    sections: dict[str, str | list[str]] | None = None,
     instrumental: bool = False,
     vocal_language: str = "zh",
     duration: float = 30.0,
@@ -258,8 +270,15 @@ async def local_music_generate(
     thinking: bool = False,
     inference_steps: int = 8,
     seed: int = -1,
+    reference_audio: str = "",
+    task_type: str = "text2music",
 ) -> dict:
-    """用本机 ACE-Step 1.5 生成歌曲或配乐，任务结束即释放模型内存。"""
+    """用本机 ACE-Step 1.5 Turbo 生成歌曲或配乐，任务结束即释放模型内存。
+
+    可直接传带 [Verse]/[Chorus]/[Bridge] 标签的 lyrics；也可用 structure="ABBA"
+    与 sections={"A": "主歌", "B": "副歌"} 自动编排。当前 Turbo 支持
+    text2music、cover、repaint；cover/repaint 必须提供 reference_audio。
+    """
     from .local_music import generate
 
     return await generate(
@@ -267,6 +286,8 @@ async def local_music_generate(
         project_id=project_id,
         name=name,
         lyrics=lyrics,
+        structure=structure,
+        sections=sections,
         instrumental=instrumental,
         vocal_language=vocal_language,
         duration=duration,
@@ -276,6 +297,8 @@ async def local_music_generate(
         thinking=thinking,
         inference_steps=inference_steps,
         seed=seed,
+        reference_audio=reference_audio,
+        task_type=task_type,
     )
 
 

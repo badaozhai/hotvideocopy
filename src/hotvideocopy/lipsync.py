@@ -6,7 +6,14 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from .local_models import CATALOG, REPO_ROOT, SOURCES_ROOT, runtime_python, run_isolated
+from .local_models import (
+    CATALOG,
+    REPO_ROOT,
+    SOURCES_ROOT,
+    run_isolated,
+    runtime_python,
+    serialized_model_task,
+)
 from .media import probe
 from .workspace import slug, sub
 
@@ -43,6 +50,7 @@ def _face_counts(video: Path, samples: int = 7) -> list[int]:
     return counts
 
 
+@serialized_model_task("本地口型同步")
 async def sync(
     video: str,
     audio: str,
