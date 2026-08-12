@@ -87,6 +87,27 @@ uv venv --python 3.12 .venv && uv pip install -e .
 | `gen_video_jobs()` | 运维 | 任务清单打捞——会话断了片不会变孤儿 |
 | `workspace_info()` | 运维 | 配置与工作区状态自检 |
 
+## 配音工作台
+
+项目内置一个本地单页面配音工作台。它使用 Apple Silicon 优化的 Qwen3-TTS
+1.7B 8-bit 模型；生成文件落在 `workspace/<project_id>/gen/local_voice/`，可直接交给
+`timeline.json` 装配。模型只在生成子进程中载入，任务结束释放内存，权重和运行环境永久保留。
+
+```bash
+.venv/bin/hotvideocopy-web
+```
+
+启动后会自动打开 `http://127.0.0.1:8765/`。也可以用 `--no-open` 只启动服务，
+或用 `--port 8766` 换端口。
+
+页面支持：
+
+- Qwen3-TTS CustomVoice 预设音色、普通话/北京话/四川话及自然语言表演指令
+- Qwen3-TTS Base 约 3 秒参考音频克隆；必须提供逐字稿并确认已获得音色授权
+- 0.75–1.35 倍后期无损时长调节，试听、下载和最近导出记录
+- 配置了 `HVC_BASE_URL` 与 `HVC_API_KEY` 时，用 AI 网关润色台词；没有配置时退回本地断句
+- 页面仅提供安装入口；安装成功后显示“已安装 · 永久保留”，不会自动清理模型
+
 **没有** dna.json 的读写工具：那是普通文件，用内置 Read/Edit 改。
 **没有** 转码/裁剪工具：直接 Bash ffmpeg。
 

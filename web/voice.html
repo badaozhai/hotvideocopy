@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>本地配音工作台</title>
+  <link rel="stylesheet" href="/voice.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/voice.html" aria-label="配音工作台首页">
+      <span class="brand-mark">声</span>
+      <span><strong>本地配音工作台</strong><small>Qwen3-TTS / Apple Silicon</small></span>
+    </a>
+    <nav>
+      <a class="nav-link is-active" href="/voice.html">配音</a>
+      <a class="nav-link" href="/">视频</a>
+    </nav>
+    <div class="model-state"><i id="modelDot"></i><span id="modelState">检查模型</span></div>
+  </header>
+
+  <main class="shell">
+    <aside class="controls" aria-label="配音参数">
+      <section class="control-section">
+        <div class="section-heading"><h2>声音来源</h2><span id="activeModelSize">--</span></div>
+        <div class="segmented" role="tablist" aria-label="声音来源">
+          <button class="mode-button is-active" type="button" data-mode="preset">预设音色</button>
+          <button class="mode-button" type="button" data-mode="clone">克隆音色</button>
+        </div>
+      </section>
+
+      <section class="control-section" id="presetControls">
+        <label for="voiceSelect">角色音色</label>
+        <select id="voiceSelect">
+          <option value="Vivian">Vivian · 明亮青年女声</option>
+          <option value="Serena">Serena · 温暖青年女声</option>
+          <option value="Uncle_Fu">Uncle Fu · 成熟男声</option>
+          <option value="Dylan" selected>Dylan · 北京男声</option>
+          <option value="Eric">Eric · 四川男声</option>
+        </select>
+      </section>
+
+      <section class="control-section clone-controls" id="cloneControls" hidden>
+        <label for="referenceFile">参考音频</label>
+        <label class="upload-zone" id="uploadZone" for="referenceFile">
+          <input id="referenceFile" type="file" accept="audio/wav,audio/mpeg,audio/mp4,audio/ogg,audio/flac">
+          <strong id="uploadTitle">选择 3–15 秒人声</strong>
+          <span id="uploadMeta">WAV / MP3 / M4A / OGG / FLAC</span>
+        </label>
+        <audio id="referencePreview" controls hidden></audio>
+        <label for="referenceText">参考音频文字</label>
+        <textarea id="referenceText" rows="3" placeholder="逐字填写参考音频中说的话"></textarea>
+        <label class="consent-row"><input id="cloneConsent" type="checkbox"><span>我已获得该音色的使用授权</span></label>
+      </section>
+
+      <section class="control-section parameter-grid">
+        <label for="languageSelect">语言 / 方言</label>
+        <select id="languageSelect">
+          <option value="Chinese">普通话</option>
+          <option value="Beijing_Dialect">北京话</option>
+          <option value="Sichuan_Dialect">四川话</option>
+          <option value="English">英语</option>
+          <option value="Japanese">日语</option>
+          <option value="Korean">韩语</option>
+        </select>
+
+        <div class="range-label"><label for="speedRange">语速</label><output id="speedValue">1.00×</output></div>
+        <input id="speedRange" type="range" min="0.75" max="1.35" step="0.01" value="1">
+      </section>
+
+      <section class="control-section">
+        <label for="instructionInput">表演指令</label>
+        <textarea id="instructionInput" rows="5">真实新闻采访现场口吻，清晰自然，有呼吸和轻微停顿，不要机械播音腔。</textarea>
+        <div class="tone-presets" aria-label="语气预设">
+          <button type="button" data-tone="真实新闻采访现场口吻，清晰自然，有呼吸和轻微停顿，不要机械播音腔。">纪实</button>
+          <button type="button" data-tone="爽朗开心，像在和熟人聊天，笑意自然但不要夸张。">爽朗</button>
+          <button type="button" data-tone="朴实沉稳，略带北方农村口音，语速不急，句尾自然收住。">朴实</button>
+          <button type="button" data-tone="年轻、专业、有自信，解释技术时清楚但不端着。">专业</button>
+        </div>
+      </section>
+
+      <section class="model-actions">
+        <div><strong id="modelActionTitle">预设模型</strong><span id="modelDisk">--</span></div>
+        <button class="secondary-button" id="installButton" type="button">安装模型</button>
+        <button class="icon-button" id="refreshModels" type="button" title="刷新模型状态" aria-label="刷新模型状态">↻</button>
+      </section>
+    </aside>
+
+    <div class="work-area">
+      <section class="editor-section">
+        <div class="editor-heading">
+          <div><span class="eyebrow">SCRIPT</span><h1>台词</h1></div>
+          <div class="project-field"><label for="projectInput">项目</label><input id="projectInput" value="dinosaur_farm_interview"></div>
+        </div>
+        <textarea id="scriptInput" class="script-editor" spellcheck="false">今天，我们来到一个把猪圈养出新花样的村子。</textarea>
+        <div class="editor-footer">
+          <span id="charCount">25 字</span>
+          <button class="generate-button" id="generateButton" type="button"><span>生成配音</span><kbd>⌘ ↵</kbd></button>
+        </div>
+      </section>
+
+      <section class="result-section" aria-live="polite">
+        <div class="result-heading">
+          <div><span class="eyebrow">OUTPUT</span><h2>本次试听</h2></div>
+          <span id="resultMeta">尚未生成</span>
+        </div>
+        <div class="audio-output" id="audioOutput">
+          <button class="play-button" id="playButton" type="button" disabled aria-label="播放或暂停">▶</button>
+          <div class="waveform" id="waveform" aria-hidden="true"></div>
+          <time id="audioDuration">00:00</time>
+          <audio id="resultAudio"></audio>
+          <a class="download-button is-disabled" id="downloadButton" aria-disabled="true">下载</a>
+        </div>
+      </section>
+
+      <section class="history-section">
+        <div class="result-heading"><div><span class="eyebrow">RECENT</span><h2>最近生成</h2></div><button class="text-button" id="clearHistory" type="button">清空</button></div>
+        <div class="history-list" id="historyList"><p class="empty-state">暂无记录</p></div>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/voice.js"></script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1017">
+  <title>动作复刻台 · hotvideocopy</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="动作复刻台首页">
+        <span class="brand-mark" aria-hidden="true">↗</span>
+        <span>
+          <strong>动作复刻台</strong>
+          <small>hotvideocopy / frame match</small>
+        </span>
+      </a>
+      <nav class="top-nav" aria-label="工作区导航">
+        <a class="is-active" href="#preview">复刻编辑</a>
+        <a href="#timeline">动作时间轴</a>
+        <a href="#assets">资产</a>
+      </nav>
+      <div class="topbar-actions">
+        <span class="sync-badge"><i aria-hidden="true"></i><span id="syncLabel">源片已锁定</span></span>
+        <button class="icon-button" id="refreshButton" type="button" title="刷新项目" aria-label="刷新项目">↻</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="project-head">
+        <div class="project-title">
+          <div class="eyebrow"><span>PROJECT / 7671559890300685604</span><span class="eyebrow-line"></span><span>ACTION REPLICA</span></div>
+          <h1>云霄往事 <em>· 魔性舞步</em></h1>
+          <p>逐帧读取源片动作，用孙悟空替男、嫦娥替女，保留原始节拍与 BGM。</p>
+        </div>
+        <div class="project-metrics" aria-label="源片信息">
+          <div><span>时长</span><strong id="durationMetric">15.933 s</strong></div>
+          <div><span>帧率</span><strong id="fpsMetric">30 fps</strong></div>
+          <div><span>画幅</span><strong id="aspectMetric">1254 × 720</strong></div>
+        </div>
+        <a class="primary-button" id="downloadButton" href="/api/media?file=dy_7671559890300685604/final_wukong_change_dance_pose_driven.mp4" download="孙悟空_嫦娥_舞蹈复刻.mp4"><span aria-hidden="true">↓</span>下载成片</a>
+      </section>
+
+      <section class="studio-grid" id="preview">
+        <section class="panel preview-panel">
+          <div class="panel-heading">
+            <div>
+              <span class="section-index">01</span>
+              <h2>对齐预览</h2>
+            </div>
+            <div class="transport" aria-label="预览控制">
+              <button class="transport-button" id="playButton" type="button" title="播放 / 暂停" aria-label="播放 / 暂停">▶</button>
+              <span class="time-readout"><strong id="currentTime">00:00.000</strong><span>/</span><span id="totalTime">00:15.933</span></span>
+              <button class="transport-button subtle" id="frameBackButton" type="button" title="上一帧" aria-label="上一帧">‹</button>
+              <button class="transport-button subtle" id="frameForwardButton" type="button" title="下一帧" aria-label="下一帧">›</button>
+            </div>
+          </div>
+
+          <div class="preview-grid">
+            <article class="media-card source-card">
+              <div class="media-label"><span>REFERENCE</span><span>原片 / 静音对照</span></div>
+              <div class="video-wrap">
+                <video id="sourceVideo" preload="metadata" playsinline muted poster="/api/media?file=dy_7671559890300685604/frames/reference.jpg">
+                  <source src="/api/media?file=dy_7671559890300685604/source.mp4" type="video/mp4">
+                </video>
+                <span class="frame-tag" id="frameTag">F0000</span>
+              </div>
+              <div class="media-foot"><span>林渺渺 · 原片动作基准</span><span id="sourceStatus">READY</span></div>
+            </article>
+
+            <article class="media-card target-card">
+              <div class="media-label"><span>FINAL</span><span>孙悟空 × 嫦娥 / 原始 BGM</span></div>
+              <div class="video-wrap target-stage" id="targetStage">
+                <video id="targetVideo" preload="metadata" playsinline controls poster="/api/media?file=dy_7671559890300685604/qc/final_first.jpg">
+                  <source src="/api/media?file=dy_7671559890300685604/final_wukong_change_dance_pose_driven.mp4" type="video/mp4">
+                </video>
+                <span class="frame-tag target-frame-tag" id="targetFrameTag">LOCKED / F0000</span>
+              </div>
+              <div class="media-foot"><span>男 = 孙悟空 · 女 = 嫦娥</span><span class="lock-label" id="targetStatus">FINAL</span></div>
+            </article>
+          </div>
+
+          <div class="preview-footer">
+            <div class="sync-line"><span class="sync-dot"></span><strong>双画面已同步</strong><span>以成片时间码为准</span></div>
+            <button class="ghost-button" id="alignButton" type="button"><span aria-hidden="true">⌁</span>重新对齐</button>
+          </div>
+        </section>
+
+        <aside class="side-column">
+          <section class="panel asset-panel" id="assets">
+            <div class="panel-heading compact-heading">
+              <div>
+                <span class="section-index">02</span>
+                <h2>角色替换</h2>
+              </div>
+              <span class="panel-state">2 / 2 已锁定</span>
+            </div>
+            <div class="asset-stack">
+              <button class="asset-card is-selected" type="button" data-role="male" aria-pressed="true">
+                <span class="asset-thumb warm"><img src="/api/media?file=assets/characters/wukong.png" alt="孙悟空"></span>
+                <span class="asset-copy"><small>男 / MALE</small><strong>孙悟空</strong><span>金棕猴脸 · 金紧箍 · 虎皮围裙</span></span>
+                <span class="asset-check" aria-hidden="true">✓</span>
+              </button>
+              <button class="asset-card is-selected" type="button" data-role="female" aria-pressed="true">
+                <span class="asset-thumb cool"><img src="/api/media?file=assets/characters/change.png" alt="嫦娥"></span>
+                <span class="asset-copy"><small>女 / FEMALE</small><strong>嫦娥</strong><span>银凤冠 · 月白宫装 · 珍珠璎珞</span></span>
+                <span class="asset-check" aria-hidden="true">✓</span>
+              </button>
+            </div>
+            <div class="lock-note"><span class="lock-icon" aria-hidden="true">▣</span><span>定妆资产锁定，动作只改变姿态，不改变角色外观。</span></div>
+          </section>
+
+          <section class="panel audio-panel">
+            <div class="panel-heading compact-heading">
+              <div>
+                <span class="section-index">03</span>
+                <h2>原始 BGM</h2>
+              </div>
+              <span class="audio-state">AAC · 44.1 kHz</span>
+            </div>
+            <div class="audio-track" id="audioTrack" role="button" tabindex="0" aria-label="播放原始 BGM">
+              <button class="audio-play" id="audioPlayButton" type="button" title="播放原始 BGM" aria-label="播放原始 BGM">▶</button>
+              <div class="audio-track-main">
+                <div class="audio-track-head"><strong>source · original mix</strong><span id="audioDuration">15.933 s</span></div>
+                <div class="waveform" id="waveform" aria-hidden="true"></div>
+                <div class="audio-progress"><span id="audioProgress"></span></div>
+              </div>
+            </div>
+            <div class="audio-foot"><span>与源片同轨，不重配 BGM</span><span class="track-lock">● LOCKED</span></div>
+          </section>
+
+          <section class="panel qc-panel">
+            <div class="panel-heading compact-heading">
+              <div>
+                <span class="section-index">04</span>
+                <h2>对齐门禁</h2>
+              </div>
+              <span class="qc-pass">READY</span>
+            </div>
+            <div class="qc-list">
+              <label class="check-row"><input id="frameLock" type="checkbox" checked><span class="fake-check">✓</span><span>逐帧动作锁定</span><strong>478 F</strong></label>
+              <label class="check-row"><input id="beatLock" type="checkbox" checked><span class="fake-check">✓</span><span>卡点切割锁定</span><strong>16 BEATS</strong></label>
+              <label class="check-row"><input id="audioLock" type="checkbox" checked><span class="fake-check">✓</span><span>原始 BGM 保留</span><strong>1 TRACK</strong></label>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="panel timeline-panel" id="timeline">
+        <div class="panel-heading timeline-heading">
+          <div>
+            <span class="section-index">05</span>
+            <h2>动作时间轴</h2>
+            <span class="heading-note">源片每帧作为唯一时间基准</span>
+          </div>
+          <div class="timeline-tools">
+            <span class="timeline-stat"><strong id="frameCount">478</strong> frames</span>
+            <span class="timeline-stat"><strong id="beatCount">16</strong> beats</span>
+            <button class="small-button is-active" id="frameModeButton" type="button">30 FPS</button>
+          </div>
+        </div>
+        <div class="timeline-scroll">
+          <div class="timeline-canvas" id="timelineCanvas">
+            <div class="ruler-row"><div class="track-label">TIME</div><div class="ruler" id="ruler"></div></div>
+            <div class="timeline-row"><div class="track-label"><strong>动作</strong><span>BEAT</span></div><div class="track-lane" id="beatLane"></div></div>
+            <div class="timeline-row"><div class="track-label"><strong>角色</strong><span>CAST</span></div><div class="track-lane cast-lane" id="castLane"></div></div>
+            <div class="timeline-row"><div class="track-label"><strong>BGM</strong><span>ORIGINAL</span></div><div class="track-lane audio-lane"><div class="audio-block"><span class="audio-block-icon">≈</span><span>original mix</span><span class="audio-block-duration">15.933 s</span></div></div></div>
+            <div class="playhead" id="playhead"><span></span></div>
+          </div>
+        </div>
+        <div class="beat-table-wrap">
+          <div class="beat-table-head"><span>BEAT</span><span>TIME</span><span>动作描述</span><span>角色映射</span><span>状态</span></div>
+          <div class="beat-table" id="beatTable"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer"><span>hotvideocopy / action replica</span><span id="footerStatus">原片动作、帧率与音轨已绑定到当前项目</span></footer>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -3,7 +3,8 @@
 Heavy models never load in the hotvideocopy process. Each inference runs in a
 short-lived child process so Apple unified memory is returned to the OS when
 the command exits. Model weights and runtimes live under workspace/.local_ai,
-which is already outside version control and can be purged independently.
+which is outside version control and persists until an explicit user-requested
+purge.
 """
 
 from __future__ import annotations
@@ -245,6 +246,8 @@ def _record_install(component: str, variant: str, models: tuple[str, ...]) -> No
         "installed_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
     }
     data["schema_version"] = "1.0"
+    data["retention_policy"] = "persistent_until_explicit_purge"
+    data["automatic_cleanup"] = False
     _write_manifest(data)
 
 
@@ -424,6 +427,8 @@ def _run_command(
     timeout: int = 7200,
     download_route: str = "configured",
 ) -> None:
+    if shutil.disk_usage(CONFIG.workspace).free < MIN_FREE_RESERVE:
+        raise RuntimeError("本地模型任务未启动：可用磁盘空间低于 1 GiB 安全线")
     env = local_environment(download_route)
     process: subprocess.Popen | None = None
     try:
@@ -878,6 +883,8 @@ def run_isolated(args: list[str], timeout: int = 3600, cwd: Path | None = None) 
     """Run one model task in a child process; no shell and no resident model."""
     if not args or not Path(args[0]).exists():
         raise RuntimeError(f"本地模型运行时不存在：{args[0] if args else '(empty)'}")
+    if shutil.disk_usage(CONFIG.workspace).free < MIN_FREE_RESERVE:
+        raise RuntimeError("本地模型任务未启动：可用磁盘空间低于 1 GiB 安全线")
     with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as output:
         process = subprocess.Popen(
             args,

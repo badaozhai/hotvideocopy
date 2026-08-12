@@ -224,7 +224,7 @@ def get_frames(video: str, timestamps: list[float]) -> list[ImageContent]:
 
 本地 SD1.5 姿态重绘只用于试验或补救。`scripts/dance_local_models.py` 提供 `--dry-run` 和按需下载；成功下载并验证可用的模型与运行环境默认长期保留，后续直接复用，不得在交付后自动删除。只有用户再次明确要求释放空间时才可清理。`dance_local_repaint.py`、`dance_local_face_refine.py` 和 `dance_local_face_swap.py` 是单帧质量验证工具，不应被当作整片默认生产路线。
 
-语音、配乐和口型模型统一由 `scripts/local_media_models.py` 按需管理，全部放在 `workspace/.local_ai/`。下载时先做无代理直连测速；直连失败或低于快速阈值时，再比较 `.env` 已配置代理和本机 `http://127.0.0.1:8080`，自动使用实测最快的可用线路。Hugging Face 权重沿用同一缓存并支持换线路断点续传。已经成功下载的模型和隔离运行环境默认长期保留，后续任务直接复用；除非用户再次明确要求清理，否则不得在交付后执行 `purge`。只可自动删除确认损坏或重复的临时下载。
+语音、配乐和口型模型统一由 `scripts/local_media_models.py` 按需管理，全部放在 `workspace/.local_ai/`。下载时先做无代理直连测速；直连失败或低于快速阈值时，再比较 `.env` 已配置代理和本机 `http://127.0.0.1:8080`，自动使用实测最快的可用线路。Hugging Face 权重沿用同一缓存并支持换线路断点续传。已经成功下载的模型和隔离运行环境必须长期保留，后续任务直接复用；除非用户再次明确要求清理，否则不得在交付后执行 `purge`。只可自动删除确认损坏或重复的临时下载。下载或推理期间可用空间一旦低于 1 GiB 必须立即停止任务，不能通过自动删除已安装模型来腾空间。
 
 ### 图像服务
 

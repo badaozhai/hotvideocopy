@@ -36,7 +36,7 @@ import shutil
 from pathlib import Path
 
 from .config import CONFIG
-from .media import ffmpeg_bin, probe, run
+from .media import ffmpeg_bin, ffprobe_bin, probe, run
 from .workspace import project_dir, project_of, read_json, sub
 
 _AUDIO_SR = 48000
@@ -70,6 +70,20 @@ def _locate_timeline(timeline: str) -> Path:
 
 def _esc_filter_path(p: Path) -> str:
     return str(p).replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+
+
+async def _video_frame_count(path: Path) -> int:
+    rc, out, _ = await run(
+        ffprobe_bin(), "-v", "error", "-count_frames", "-select_streams", "v:0",
+        "-show_entries", "stream=nb_read_frames", "-of",
+        "default=noprint_wrappers=1:nokey=1", str(path), timeout=120,
+    )
+    if rc != 0:
+        return 0
+    try:
+        return int(out.strip())
+    except ValueError:
+        return 0
 
 
 async def assemble(timeline: str) -> dict:
@@ -133,6 +147,23 @@ async def assemble(timeline: str) -> dict:
                                "-pix_fmt", "yuv420p", str(part), timeout=1800)
         if rc != 0 or not part.is_file():
             raise RuntimeError(f"video[{i}] 裁切失败：{err[-300:]}")
+        if frame_limit is not None:
+            actual_frames = await _video_frame_count(part)
+            missing_frames = frame_limit - actual_frames
+            if 0 < missing_frames <= 2:
+                # fps 在素材末尾可能因时间戳舍入少产 1-2 帧。只修复这种边界
+                # 误差，避免给确实过短的素材凭空补出一段静止画面。
+                repaired = tmp / f"clip_{i:03d}_repaired.mp4"
+                rc, _, err = await run(
+                    ffmpeg_bin(), "-y", "-i", str(part),
+                    "-vf", f"tpad=stop_mode=clone:stop={missing_frames}",
+                    "-frames:v", str(frame_limit), "-r", f"{fps}", "-an",
+                    "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+                    "-pix_fmt", "yuv420p", str(repaired), timeout=1800,
+                )
+                if rc != 0 or await _video_frame_count(repaired) != frame_limit:
+                    raise RuntimeError(f"video[{i}] 尾帧修复失败：{err[-300:]}")
+                repaired.replace(part)
         pdur = float((await probe(part)).get("duration") or 0)
         if pdur < 0.1:
             # 1-2 帧的碎片段会污染 concat 时间戳,整条成片时长塌缩(实案:1帧卡致 529s→143s)
