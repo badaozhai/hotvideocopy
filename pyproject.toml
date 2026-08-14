@@ -18,6 +18,7 @@ dependencies = [
 [project.scripts]
 hotvideocopy = "hotvideocopy.server:main"
 hotvideocopy-web = "hotvideocopy.web:main"
+hotvideocopy-ui = "hotvideocopy.webui:main"
 
 [project.optional-dependencies]
 # 第一阶段 transcribe / 第二阶段 OCR 用，装起来重，单独拆开

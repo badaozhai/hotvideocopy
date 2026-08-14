@@ -5,6 +5,10 @@ __pycache__/
 build/
 dist/
 .env
+gui/src-tauri/target/
+gui/src-tauri/binaries/
+gui/src-tauri/gen/
+gui/src-tauri/icons-src.png
 workspace/
 .DS_Store
 uv.lock

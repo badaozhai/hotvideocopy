@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "写轮眼",
+  "mainBinaryName": "sharingan",
+  "version": "0.1.0",
+  "identifier": "com.hotvideocopy.gui",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "写轮眼",
+        "width": 1320,
+        "height": 860,
+        "minWidth": 900,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": []
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/icon.icns", "icons/icon.ico", "icons/icon.png"],
+    "externalBin": ["binaries/ffmpeg"]
+  }
+}

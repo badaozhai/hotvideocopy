@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "hotvideocopy": {
+      "command": "/Users/cj/code/github/hotvideocopy/.venv/bin/hotvideocopy"
+    }
+  }
+}

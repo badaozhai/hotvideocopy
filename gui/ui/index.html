@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>写轮眼</title>
+<style>
+:root{
+  --text:#3b4258; --dim:#8892ab; --accent:#5b8cff; --accent2:#a78bfa;
+  --ok:#2fae7c; --warn:#e8963d; --line:rgba(120,140,190,.16);
+  --glass:rgba(255,255,255,.55); --glass2:rgba(255,255,255,.62);
+  --radius:16px;
+  --shadow:0 8px 24px rgba(90,110,170,.10),0 2px 6px rgba(90,110,170,.07);
+  --shadow-lift:0 12px 32px rgba(90,110,170,.16),0 4px 10px rgba(90,110,170,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  color:var(--text);font:14px/1.6 -apple-system,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none;
+  background:
+    radial-gradient(1100px 700px at 8% -10%,#d7ebff 0%,transparent 55%),
+    radial-gradient(900px 620px at 102% -4%,#eadfff 0%,transparent 55%),
+    radial-gradient(1000px 820px at 46% 112%,#d9f6e8 0%,transparent 60%),
+    radial-gradient(720px 520px at 96% 88%,#ffe6f0 0%,transparent 55%),
+    #f3f6fc;
+  background-attachment:fixed;
+}
+header{display:flex;align-items:center;gap:12px;padding:12px 20px;
+  background:var(--glass);backdrop-filter:blur(24px) saturate(1.7);-webkit-backdrop-filter:blur(24px) saturate(1.7);
+  border-bottom:1px solid rgba(255,255,255,.75);box-shadow:0 1px 16px rgba(90,110,170,.06)}
+header .logo{width:24px;height:24px;border-radius:7px;box-shadow:0 2px 8px rgba(200,40,70,.25)}
+header h1{font-size:15px;font-weight:700;background:linear-gradient(100deg,#d6304c,#ff7a59);-webkit-background-clip:text;background-clip:text;color:transparent}
+header .sub{color:var(--dim);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw}
+header .right{margin-left:auto;display:flex;gap:8px}
+main{flex:1;display:flex;min-height:0}
+aside{width:242px;flex-shrink:0;overflow-y:auto;
+  background:rgba(255,255,255,.4);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
+  border-right:1px solid rgba(255,255,255,.7)}
+.proj{margin:8px 10px;padding:9px 12px;border-radius:14px;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.proj:hover{background:rgba(255,255,255,.6)}
+.proj.active{background:rgba(255,255,255,.85);border-color:rgba(255,255,255,.9);box-shadow:var(--shadow)}
+.proj .name{font-weight:600;font-size:13px;word-break:break-all}
+.proj .info{color:var(--dim);font-size:11px;margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{font-size:10px;padding:0 7px;border-radius:999px;border:1px solid var(--line);color:var(--dim);background:rgba(255,255,255,.5)}
+.badge.on{color:var(--ok);border-color:rgba(47,174,124,.4);background:rgba(47,174,124,.08)}
+section{flex:1;display:flex;flex-direction:column;min-width:0}
+nav{display:flex;gap:6px;padding:10px 18px;
+  background:rgba(255,255,255,.35);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,.65)}
+nav button{background:none;border:none;color:var(--dim);font-size:13px;padding:6px 16px;border-radius:999px;cursor:pointer;transition:all .15s}
+nav button:hover{color:var(--text);background:rgba(255,255,255,.5)}
+nav button.active{background:rgba(255,255,255,.92);color:var(--text);font-weight:600;box-shadow:var(--shadow)}
+#content{flex:1;overflow-y:auto;padding:20px}
+.empty{color:var(--dim);text-align:center;margin-top:18vh;font-size:13px}
+button.btn{background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.85);color:var(--text);
+  padding:6px 16px;border-radius:999px;cursor:pointer;font-size:12px;box-shadow:var(--shadow);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:all .15s}
+button.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-lift);color:var(--accent)}
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.meta-item{background:var(--glass2);border:1px solid rgba(255,255,255,.8);border-radius:var(--radius);
+  padding:10px 14px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.meta-item .k{color:var(--dim);font-size:11px}
+.meta-item .v{font-size:13px;word-break:break-all;margin-top:2px;user-select:text}
+.players{display:flex;gap:20px;flex-wrap:wrap}
+.player h3{font-size:13px;color:var(--dim);margin-bottom:8px}
+video.main{max-height:60vh;max-width:340px;border-radius:var(--radius);background:#000;
+  border:1px solid rgba(255,255,255,.8);box-shadow:var(--shadow-lift)}
+.rhythm{display:flex;height:28px;border-radius:999px;overflow:hidden;margin-bottom:18px;
+  border:1px solid rgba(255,255,255,.85);box-shadow:var(--shadow);background:rgba(255,255,255,.5)}
+.rhythm div{cursor:pointer;border-right:1px solid rgba(255,255,255,.7);min-width:2px;transition:filter .1s}
+.rhythm div:hover{filter:brightness(.88) saturate(1.4)}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.shot{background:var(--glass2);border:1px solid rgba(255,255,255,.85);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:all .15s}
+.shot:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift)}
+.shot .thumb{aspect-ratio:9/16;max-height:280px;width:100%;object-fit:contain;background:linear-gradient(160deg,#e8eefb,#dde6f7);display:block;cursor:zoom-in}
+.shot .body{padding:9px 12px}
+.shot .head{display:flex;justify-content:space-between;align-items:baseline}
+.shot .idx{font-weight:700;color:var(--accent)}
+.shot .tt{color:var(--dim);font-size:11px}
+.shot .dur{color:var(--warn);font-size:11px;font-weight:600}
+.line{font-size:12px;margin-top:5px;padding-left:8px;border-left:2px solid var(--accent);user-select:text}
+.line.ocr{border-color:var(--accent2);color:#7c66c9}
+.line .spk{color:var(--ok);font-size:11px;margin-right:4px;font-weight:600}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cols h3{font-size:13px;color:var(--dim);margin-bottom:10px}
+.cols>div{background:var(--glass2);border:1px solid rgba(255,255,255,.8);border-radius:var(--radius);
+  padding:14px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.seg{display:flex;gap:10px;padding:6px 8px;border-bottom:1px solid var(--line);font-size:13px;user-select:text}
+.seg .ts{color:var(--dim);font-size:11px;white-space:nowrap;min-width:86px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:24px}
+.gallery img{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.85);cursor:zoom-in;display:block;box-shadow:var(--shadow);transition:all .15s}
+.gallery img:hover{transform:translateY(-2px) scale(1.02);box-shadow:var(--shadow-lift)}
+.gallery video{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.85);background:#000;box-shadow:var(--shadow)}
+.gallery .cap{font-size:11px;color:var(--dim);word-break:break-all;margin-top:4px}
+h2.sec{font-size:14px;margin:4px 0 12px}
+audio{width:100%}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+pre#json{background:var(--glass2);border:1px solid rgba(255,255,255,.8);border-radius:var(--radius);
+  padding:16px;font:12px/1.5 ui-monospace,Menlo,monospace;overflow:auto;white-space:pre-wrap;word-break:break-all;
+  user-select:text;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#lightbox{position:fixed;inset:0;background:rgba(235,241,252,.55);backdrop-filter:blur(28px) saturate(1.4);
+  -webkit-backdrop-filter:blur(28px) saturate(1.4);display:none;align-items:center;justify-content:center;z-index:9;cursor:zoom-out}
+#lightbox img{max-width:92vw;max-height:92vh;border-radius:16px;box-shadow:0 24px 64px rgba(60,80,140,.3)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(120,140,190,.3);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(120,140,190,.5)}
+/* 弹窗(设置 / 新任务) */
+.modal-wrap{position:fixed;inset:0;background:rgba(235,241,252,.5);backdrop-filter:blur(20px) saturate(1.3);
+  -webkit-backdrop-filter:blur(20px) saturate(1.3);display:none;align-items:flex-start;justify-content:center;
+  z-index:8;overflow-y:auto;padding:6vh 20px}
+.modal-wrap.open{display:flex}
+.sheet{background:rgba(255,255,255,.78);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.9);border-radius:22px;box-shadow:0 24px 64px rgba(60,80,140,.22);
+  width:560px;max-width:94vw;padding:24px 26px;margin-bottom:6vh}
+.sheet h2{font-size:16px;margin-bottom:2px}
+.sheet .desc{color:var(--dim);font-size:12px;margin-bottom:16px}
+.sheet h4{font-size:12px;color:var(--dim);font-weight:600;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.4px}
+.frow{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.frow label{font-size:12px;color:var(--dim);width:118px;flex-shrink:0;text-align:right}
+.frow input,.frow select,.frow textarea{flex:1;border:1px solid rgba(140,160,210,.3);border-radius:10px;
+  padding:7px 11px;font-size:13px;color:var(--text);background:rgba(255,255,255,.75);outline:none;
+  font-family:inherit;transition:all .15s}
+.frow input:focus,.frow select:focus,.frow textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,140,255,.15);background:#fff}
+.frow .mini{flex:none;padding:6px 12px}
+.frow .state{font-size:11px;min-width:70px}
+.state.ok{color:var(--ok)} .state.bad{color:#e05661}
+.sheet .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;align-items:center}
+.sheet .foot .note{margin-right:auto;color:var(--dim);font-size:11px}
+button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
+  padding:8px 22px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600;
+  box-shadow:0 6px 18px rgba(91,140,255,.35);transition:all .15s}
+button.primary:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(91,140,255,.45)}
+.banner{margin:14px 18px 0;padding:10px 16px;border-radius:14px;font-size:13px;
+  background:rgba(255,244,214,.8);border:1px solid rgba(232,150,61,.35);color:#9a6b1f;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;gap:10px;align-items:center}
+.banner button{margin-left:auto}
+pre.prompt{background:rgba(255,255,255,.8);border:1px solid rgba(140,160,210,.3);border-radius:12px;
+  padding:12px;font:12px/1.6 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all;
+  user-select:text;max-height:220px;overflow-y:auto}
+#toast{position:fixed;left:50%;bottom:36px;transform:translateX(-50%) translateY(80px);z-index:99;
+  background:rgba(50,60,90,.92);color:#fff;font-size:13px;padding:9px 22px;border-radius:999px;
+  box-shadow:0 12px 32px rgba(60,80,140,.35);transition:transform .25s;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+/* 顶级导航(项目/模型) */
+.mode-nav{display:flex;gap:4px;background:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.7);
+  border-radius:999px;padding:3px;margin-left:6px}
+.mode-nav button{background:none;border:none;color:var(--dim);font-size:13px;padding:5px 16px;
+  border-radius:999px;cursor:pointer;transition:all .15s}
+.mode-nav button.active{background:rgba(255,255,255,.95);color:var(--text);font-weight:600;box-shadow:var(--shadow)}
+/* 模型管理页 */
+.mcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.mcard{background:var(--glass2);border:1px solid rgba(255,255,255,.85);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.mcard h3{font-size:14px;display:flex;align-items:center;gap:8px}
+.mcard .rows{margin-top:8px;font-size:12px;color:var(--dim)}
+.mcard .rows b{color:var(--text);font-weight:600}
+.mcard .rows div{display:flex;justify-content:space-between;padding:2px 0;gap:10px}
+.dot{width:8px;height:8px;border-radius:50%;background:#c6cede;flex-shrink:0}
+.dot.on{background:var(--ok);box-shadow:0 0 6px rgba(47,174,124,.6)}
+.dot.bad{background:#e05661}
+.mcard .foot{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tagchip{font-size:10px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--dim);background:rgba(255,255,255,.5)}
+.progress{height:6px;border-radius:999px;background:rgba(120,140,190,.18);overflow:hidden;flex:1;min-width:80px}
+.progress i{display:block;height:100%;width:40%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  animation:slide 1.2s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+</style>
+</head>
+<body>
+<header>
+  <img class="logo" src="logo.png" alt="">
+  <h1>写轮眼</h1>
+  <div class="mode-nav">
+    <button data-mode="project" class="active" onclick="switchMode('project')">项目</button>
+    <button data-mode="models" onclick="switchMode('models')">模型</button>
+  </div>
+  <span class="sub" id="ws-path"></span>
+  <div class="right">
+    <button class="btn" onclick="openVoice()">配音工作台</button>
+    <button class="btn" onclick="openTask()">新任务</button>
+    <button class="btn" onclick="openSettings()">设置</button>
+    <button class="btn" onclick="pickWorkspace()">选择工作区</button>
+    <button class="btn" onclick="loadProjects()">刷新</button>
+  </div>
+</header>
+<div id="banner" class="banner" style="display:none">
+  还没配置端点与 API Key,生成链路跑不了——先完成设置(解构侧工具不受影响)。
+  <button class="btn" onclick="openSettings()">去设置</button>
+</div>
+
+<!-- 设置:端点/Key → 模型 -->
+<div class="modal-wrap" id="settings">
+  <div class="sheet">
+    <h2>设置</h2>
+    <div class="desc">写入仓库根的 <span id="env-path" style="user-select:text">.env</span>,MCP server 重启后生效</div>
+
+    <h4>① 端点与密钥</h4>
+    <div class="frow"><label>网关地址</label><input id="f-base" placeholder="https://your-gateway.example.com(填到根,自动补 /v1)">
+      <button class="btn mini" onclick="testGw('base')">测试</button><span class="state" id="st-base"></span></div>
+    <div class="frow"><label>主 Key</label><input id="f-key" type="password" placeholder="sk-…(图像/TTS/转写走这把)"></div>
+    <div class="frow"><label>视频 Key</label><input id="f-grok" type="password" placeholder="xai-…(/v1/videos/* 独立鉴权,主 Key 会 403)"></div>
+    <div class="frow"><label>视频端点</label><input id="f-vbase" placeholder="留空=同网关;直连填 https://api.x.ai/v1">
+      <button class="btn mini" onclick="testGw('video')">测试</button><span class="state" id="st-video"></span></div>
+
+    <h4>② 模型</h4>
+    <div class="frow"><label>出图</label><input id="f-img" list="dl-img"><datalist id="dl-img"><option>gpt-image-2</option></datalist></div>
+    <div class="frow"><label>视频生成</label><input id="f-vid" list="dl-vid"><datalist id="dl-vid"><option>grok-imagine-video-1.5</option></datalist></div>
+    <div class="frow"><label>转写</label><input id="f-whisper" list="dl-wh"><datalist id="dl-wh"><option>large-v3</option><option>medium</option></datalist></div>
+    <div class="frow"><label>TTS 模型</label><input id="f-tts" list="dl-tts"><datalist id="dl-tts"><option>gpt-4o-mini-tts</option></datalist></div>
+    <div class="frow"><label>TTS 音色</label><input id="f-voice" list="dl-voice">
+      <datalist id="dl-voice"><option>alloy</option><option>echo</option><option>onyx</option><option>nova</option><option>shimmer</option>
+      <option>zh-CN-YunxiNeural</option><option>zh-CN-XiaoxiaoNeural</option></datalist></div>
+
+    <div class="foot">
+      <span class="note">Key 只落在本机 .env,已被 gitignore</span>
+      <button class="btn" onclick="$('#settings').classList.remove('open')">取消</button>
+      <button class="primary" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新任务:选流水线 → 生成指令,贴进 Cursor/Claude 执行 -->
+<div class="modal-wrap" id="task">
+  <div class="sheet">
+    <h2>新任务</h2>
+    <div class="desc">流水线由 agent 编排执行——这里生成标准指令,复制后贴进 Cursor / Claude Code 开跑,跑完回这里看产物</div>
+    <div class="frow"><label>流水线</label><select id="t-pipe" onchange="buildPrompt()">
+      <option value="replicate">端到端复刻(解构→DNA→换皮→生成→装配)</option>
+      <option value="clone11">1:1 复刻(同镜头数/台词量/节奏,换人物素材)</option>
+      <option value="extract">仅解构(切镜+转写+OCR+分镜表,不生成)</option>
+      <option value="music">本地配乐(ACE-Step:歌词/BPM/调式/风格)</option>
+      <option value="lipsync">口型同步(LatentSync:单人镜逐镜)</option>
+    </select></div>
+    <div class="frow"><label>源视频</label><input id="t-src" placeholder="抖音分享链接,或本地文件绝对路径" oninput="buildPrompt()"></div>
+    <div class="frow" id="t-topic-row"><label>新题材方向</label><input id="t-topic" placeholder="如:西游记题材,悟空八戒送外卖" oninput="buildPrompt()"></div>
+    <h4>生成的指令</h4>
+    <pre class="prompt" id="t-prompt"></pre>
+    <div class="foot">
+      <button class="btn" onclick="$('#task').classList.remove('open')">关闭</button>
+      <button class="primary" onclick="copyPrompt()">复制指令</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<main>
+  <aside id="projects"></aside>
+  <section>
+    <nav id="tabs" style="display:none">
+      <button data-tab="overview" class="active">概览</button>
+      <button data-tab="shots">分镜</button>
+      <button data-tab="words">台词·花字</button>
+      <button data-tab="gen">生成素材</button>
+      <button data-tab="files">工程文件</button>
+    </nav>
+    <div id="content"><div class="empty">← 选择一个项目</div></div>
+  </section>
+</main>
+<div id="lightbox" onclick="this.style.display='none'"><img id="lightbox-img" alt=""></div>
+
+<script>
+const {invoke, convertFileSrc} = window.__TAURI__.core;
+const dialog = window.__TAURI__.dialog;
+
+let cur = null, detail = null, tab = 'overview';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtT = t => { t = +t || 0; const m = Math.floor(t / 60); return m + ':' + (t % 60).toFixed(1).padStart(4, '0'); };
+const base = p => String(p).split(/[\\/]/).pop();
+
+async function pickWorkspace() {
+  const dir = await dialog.open({directory: true, title: '选择 workspace 目录'});
+  if (!dir) return;
+  try { await invoke('set_workspace', {path: dir}); } catch (e) { alert(e); return; }
+  cur = null; detail = null;
+  $('#tabs').style.display = 'none';
+  $('#content').innerHTML = '<div class="empty">← 选择一个项目</div>';
+  await loadProjects();
+}
+
+async function loadProjects() {
+  const ws = await invoke('get_workspace');
+  $('#ws-path').textContent = ws || '';
+  if (!ws) {
+    $('#projects').innerHTML = '';
+    $('#content').innerHTML = '<div class="empty">先点右上角「选择工作区」,指到 hotvideocopy 的 workspace 目录</div>';
+    return;
+  }
+  let list = [];
+  try { list = await invoke('list_projects'); } catch (e) { alert(e); return; }
+  $('#projects').innerHTML = list.length ? list.map(p => `
+    <div class="proj ${p.id === cur ? 'active' : ''}" onclick="openProject('${esc(p.id)}')">
+      <div class="name">${esc(p.id)}</div>
+      ${p.title ? `<div class="info">${esc(p.title.slice(0, 40))}</div>` : ''}
+      <div class="info">
+        ${p.duration ? `<span>${fmtT(p.duration)}</span>` : ''}
+        ${p.shot_count ? `<span>${p.shot_count} 镜</span>` : ''}
+        <span class="badge ${p.has_source ? 'on' : ''}">源</span>
+        <span class="badge ${p.has_output ? 'on' : ''}">成片</span>
+      </div>
+    </div>`).join('') : '<div class="empty" style="margin-top:40px">workspace 为空</div>';
+}
+
+async function openProject(pid) {
+  cur = pid;
+  try { detail = await invoke('project_detail', {pid}); } catch (e) { alert(e); return; }
+  $('#tabs').style.display = 'flex';
+  document.querySelectorAll('.proj').forEach(el =>
+    el.classList.toggle('active', el.querySelector('.name').textContent === pid));
+  render(tab);
+}
+
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  render(tab = b.dataset.tab);
+});
+
+function render(t) {
+  if (!detail) return;
+  ({overview: rOverview, shots: rShots, words: rWords, gen: rGen, files: rFiles})[t]();
+}
+
+// ── 概览 ──
+function rOverview() {
+  const m = detail.meta || {};
+  const rows = Object.entries(m).filter(([, v]) => typeof v !== 'object').slice(0, 16);
+  $('#content').innerHTML = `
+    <div class="meta-grid">${rows.map(([k, v]) =>
+      `<div class="meta-item"><div class="k">${esc(k)}</div><div class="v">${esc(String(v).slice(0, 120))}</div></div>`).join('')
+    }</div>
+    <div class="players">
+      ${detail.source ? player('源片 source.mp4', 'v-source', detail.source) : ''}
+      ${detail.output ? player('成片 output.mp4', 'v-output', detail.output) : ''}
+    </div>`;
+}
+const player = (title, id, path) => `
+  <div class="player"><h3>${title}</h3>
+  <video class="main" id="${id}" src="${convertFileSrc(path)}" controls preload="metadata"></video></div>`;
+
+// ── 分镜 ──
+const inRange = (seg, st, en) => seg.t && seg.t[0] < en && seg.t[1] > st;
+function rShots() {
+  const sh = (detail.shots || {}).shots || [];
+  if (!sh.length) { $('#content').innerHTML = '<div class="empty">还没有 shots.json——先跑 scene_split</div>'; return; }
+  const total = sh.reduce((a, s) => a + s.duration, 0);
+  const segs = (detail.transcript.segments || []);
+  const spans = (detail.ocr.spans || []);
+  const hue = i => 210 + (i * 47) % 120;
+  $('#content').innerHTML = `
+    <div class="rhythm">${sh.map(s =>
+      `<div style="width:${(s.duration / total * 100).toFixed(2)}%;background:hsl(${hue(s.idx)} 75% 80%)"
+        title="#${s.idx} ${s.duration}s" onclick="seek(${s.t[0]})"></div>`).join('')}</div>
+    <div class="shots">${sh.map(s => {
+      const mid = s.sample_ts ? s.sample_ts[1] : (s.t[0] + s.t[1]) / 2;
+      const lines = segs.filter(x => inRange(x, s.t[0], s.t[1])).map(x =>
+        `<div class="line">${x.spk ? `<span class="spk">${esc(x.spk)}</span>` : ''}${esc(x.text)}</div>`).join('');
+      const texts = spans.filter(x => inRange(x, s.t[0], s.t[1])).map(x =>
+        `<div class="line ocr">${esc(x.text)}</div>`).join('');
+      return `<div class="shot">
+        <img class="thumb" data-t="${mid}" alt="#${s.idx}" onclick="zoomFrame(${mid})">
+        <div class="body">
+          <div class="head"><span class="idx">#${s.idx}</span>
+            <span class="tt" style="cursor:pointer" onclick="seek(${s.t[0]})">${fmtT(s.t[0])} → ${fmtT(s.t[1])}</span>
+            <span class="dur">${s.duration}s</span></div>
+          ${lines}${texts}
+        </div></div>`;
+    }).join('')}</div>`;
+  // 懒加载:进视口才让 Rust 抽帧(有缓存,重复看不重抽)
+  const io = new IntersectionObserver(es => es.forEach(async e => {
+    if (!e.isIntersecting) return;
+    io.unobserve(e.target);
+    try {
+      const p = await invoke('extract_frame', {pid: cur, t: +e.target.dataset.t, w: 320});
+      e.target.src = convertFileSrc(p);
+    } catch { /* 超出时长等,留黑 */ }
+  }), {rootMargin: '400px'});
+  document.querySelectorAll('.thumb[data-t]').forEach(el => io.observe(el));
+}
+async function zoomFrame(t) {
+  try {
+    const p = await invoke('extract_frame', {pid: cur, t, w: 1080});
+    $('#lightbox-img').src = convertFileSrc(p);
+    $('#lightbox').style.display = 'flex';
+  } catch (e) { alert(e); }
+}
+function seek(t) {
+  document.querySelector('#tabs button[data-tab=overview]').click();
+  const v = $('#v-source') || $('#v-output');
+  if (v) { v.currentTime = t; v.play(); }
+}
+
+// ── 台词·花字 ──
+function rWords() {
+  const segs = detail.transcript.segments || [], spans = detail.ocr.spans || [];
+  const seg = x => `<div class="seg"><span class="ts">${fmtT(x.t[0])}–${fmtT(x.t[1])}</span>
+    <span>${x.spk ? `<span class="spk">${esc(x.spk)} </span>` : ''}${esc(x.text)}</span></div>`;
+  $('#content').innerHTML = `<div class="cols">
+    <div><h3>台词 transcript.json(${segs.length} 段)</h3>${segs.map(seg).join('') || '<div class="empty">无</div>'}</div>
+    <div><h3>花字/字幕 ocr.json(${spans.length} 条)</h3>${spans.map(x => `
+      <div class="seg"><span class="ts">${fmtT(x.t[0])}–${fmtT(x.t[1])}</span>
+      <span>${esc(x.text)} <span class="ts">y=${x.y}</span></span></div>`).join('') || '<div class="empty">无</div>'}</div>
+  </div>`;
+}
+
+// ── 生成素材 ──
+function rGen() {
+  const imgs = detail.gen_images, clips = detail.gen_clips, tts = detail.gen_tts;
+  if (!imgs.length && !clips.length && !tts.length) {
+    $('#content').innerHTML = '<div class="empty">gen/ 目录为空——还没跑生成</div>'; return;
+  }
+  $('#content').innerHTML = `
+    ${imgs.length ? `<h2 class="sec">首帧 / 定妆图(${imgs.length})</h2><div class="gallery">${imgs.map(f => `
+      <div><img loading="lazy" src="${convertFileSrc(f)}" onclick="$('#lightbox-img').src=this.src;$('#lightbox').style.display='flex'">
+      <div class="cap">${esc(base(f))}</div></div>`).join('')}</div>` : ''}
+    ${clips.length ? `<h2 class="sec">视频片段(${clips.length})</h2><div class="gallery">${clips.map(f => `
+      <div><video src="${convertFileSrc(f)}" controls preload="metadata"></video>
+      <div class="cap">${esc(base(f))}</div></div>`).join('')}</div>` : ''}
+    ${tts.length ? `<h2 class="sec">TTS(${tts.length})</h2>${tts.map(f => `
+      <div style="margin-bottom:8px"><div class="cap">${esc(base(f))}</div>
+      <audio src="${convertFileSrc(f)}" controls preload="none"></audio></div>`).join('')}` : ''}`;
+}
+
+// ── 工程文件 ──
+function rFiles() {
+  const avail = Object.entries(detail.json_files).filter(([, v]) => v).map(([k]) => k);
+  $('#content').innerHTML = `
+    <div class="chips">${avail.map(n =>
+      `<button class="btn" onclick="showJson('${n}',this)">${n}.json</button>`).join('') || '<div class="empty">无工程 JSON</div>'}</div>
+    <pre id="json"></pre>`;
+  if (avail.length) showJson(avail[0], document.querySelector('.chips .btn'));
+}
+async function showJson(name, btn) {
+  document.querySelectorAll('.chips .btn').forEach(b => b.style.borderColor = '');
+  if (btn) btn.style.borderColor = 'var(--accent)';
+  let text = '';
+  try { text = await invoke('read_project_json', {pid: cur, name}); } catch (e) { text = String(e); }
+  try { $('#json').textContent = JSON.stringify(JSON.parse(text), null, 2); }
+  catch { $('#json').textContent = text; }
+}
+
+// ── 设置(端点/Key/模型 → .env) ──
+const ENV_MAP = {
+  'f-base': 'HVC_BASE_URL', 'f-key': 'HVC_API_KEY', 'f-grok': 'HVC_GROK_KEY', 'f-vbase': 'HVC_VIDEO_BASE_URL',
+  'f-img': 'HVC_IMAGE_MODEL', 'f-vid': 'HVC_VIDEO_MODEL', 'f-whisper': 'HVC_WHISPER_MODEL',
+  'f-tts': 'HVC_TTS_MODEL', 'f-voice': 'HVC_TTS_VOICE',
+};
+const DEFAULTS = {
+  'f-img': 'gpt-image-2', 'f-vid': 'grok-imagine-video-1.5', 'f-whisper': 'large-v3',
+  'f-tts': 'gpt-4o-mini-tts', 'f-voice': 'alloy',
+};
+const PLACEHOLDER = new Set(['https://your-gateway.example.com', 'sk-xxx', 'xai-xxx']);
+const unset = v => !v || PLACEHOLDER.has(v);
+
+async function openSettings() {
+  const env = await invoke('read_env');
+  $('#env-path').textContent = env.path;
+  for (const [id, key] of Object.entries(ENV_MAP)) {
+    const v = env.vars[key];
+    document.getElementById(id).value = unset(v) ? (DEFAULTS[id] || '') : v;
+  }
+  $('#st-base').textContent = $('#st-video').textContent = '';
+  $('#settings').classList.add('open');
+}
+async function saveSettings() {
+  const vars = {};
+  for (const [id, key] of Object.entries(ENV_MAP)) vars[key] = document.getElementById(id).value.trim();
+  try { await invoke('write_env', {vars}); } catch (e) { alert(e); return; }
+  $('#settings').classList.remove('open');
+  $('#banner').style.display = unset(vars.HVC_BASE_URL) || unset(vars.HVC_API_KEY) ? 'flex' : 'none';
+  toast('已保存到 .env——MCP server 重启后生效');
+}
+async function testGw(which) {
+  const st = $(which === 'base' ? '#st-base' : '#st-video');
+  st.className = 'state'; st.textContent = '测试中…';
+  const base = which === 'base' ? $('#f-base').value : ($('#f-vbase').value || $('#f-base').value);
+  const key = which === 'base' ? $('#f-key').value : $('#f-grok').value;
+  const r = await invoke('test_gateway', {base: base.trim(), key: key.trim()});
+  st.className = 'state ' + (r.ok ? 'ok' : 'bad');
+  st.textContent = r.ok ? `通 · ${r.models} 个模型` : (r.error || `HTTP ${r.status}`);
+}
+async function checkConfigured() {
+  try {
+    const env = await invoke('read_env');
+    const bad = unset(env.vars.HVC_BASE_URL) || unset(env.vars.HVC_API_KEY);
+    $('#banner').style.display = bad ? 'flex' : 'none';
+    if (bad && !checkConfigured.shown) { checkConfigured.shown = true; openSettings(); }
+  } catch { /* 工作区未定,先不打扰 */ }
+}
+
+// ── 新任务(生成 agent 指令) ──
+const PIPES = {
+  replicate: s => `用 replicate skill 端到端复刻这条视频:
+源视频:${s.src || '<抖音链接或本地路径>'}
+新题材:${s.topic || '<题材方向>'}
+严格按 SKILL.md 阶段走,每个 QC 门不过就地返工;产出 output.mp4 后告诉我工程 ID 和交付要点。`,
+  clone11: s => `对这条视频做 1:1 复刻(现行主线):
+源视频:${s.src || '<抖音链接或本地路径>'}
+人物素材:${s.topic || '<替换用的角色,如 assets/characters 里的定妆>'}
+要求:同镜头数/同台词量/同节奏,逐 shot 生成,transcribe 回验台词,帧墙 QC 通过才装配。`,
+  extract: s => `只做解构,不进生成:
+源视频:${s.src || '<抖音链接或本地路径>'}
+跑 douyin_fetch/video_import → scene_split + transcribe + ocr_burned_text,
+中点帧拼墙看一遍,产出人类可读分镜表和 dna.json(只留结构与节奏)。`,
+  music: s => `用 local_music_generate 给工程配乐:
+工程:${s.src || '<project_id>'}
+风格方向:${s.topic || '<如:古风轻快,BPM 对齐节奏曲线,有记忆点的副歌>'}
+要求:先看 dna.json 的 rhythm(BPM/卡点),按镜头时长写歌词结构(intro/verse/hook),
+生成后铺进 timeline.json 的 audio[](gain_db 压到不盖对白),重新 assemble。
+本地模型未装先跑 local_media_model_install("music")。`,
+  lipsync: s => `用 local_lipsync 修口型:
+工程/片段:${s.src || '<project_id 或 gen/clips/xxx.mp4>'}
+范围:${s.topic || '<哪些镜头,如:s05/s06 两个对白镜>'}
+要求:仅单人对白镜逐镜跑;完成后 transcribe 回验台词未损,抽首/中/尾帧确认口型自然,
+替换 timeline.json 对应片段后重新 assemble。本地模型未装先跑 local_media_model_install("lipsync", variant="mlx")。`,
+};
+function openTask() { $('#task').classList.add('open'); buildPrompt(); }
+const PIPE_LABELS = {
+  replicate: ['源视频', '抖音分享链接,或本地文件绝对路径', '新题材方向', '如:西游记题材,悟空八戒送外卖'],
+  clone11:   ['源视频', '抖音分享链接,或本地文件绝对路径', '人物素材', '如:assets/characters 里的定妆角色'],
+  extract:   ['源视频', '抖音分享链接,或本地文件绝对路径', '', ''],
+  music:     ['工程 ID', '如:replica_wx', '风格方向', '如:古风轻快,副歌有记忆点'],
+  lipsync:   ['工程/片段', '如:replica_wx 或 gen/clips/clip_s05.mp4', '镜头范围', '如:s05/s06 两个对白镜'],
+};
+function buildPrompt() {
+  const pipe = $('#t-pipe').value;
+  const [srcLabel, srcPh, topicLabel, topicPh] = PIPE_LABELS[pipe];
+  $('#t-src').previousElementSibling && ($('#t-src').closest('.frow').querySelector('label').textContent = srcLabel);
+  $('#t-src').placeholder = srcPh;
+  $('#t-topic-row').style.display = topicLabel ? 'flex' : 'none';
+  if (topicLabel) {
+    $('#t-topic-row').querySelector('label').textContent = topicLabel;
+    $('#t-topic').placeholder = topicPh;
+  }
+  $('#t-prompt').textContent = PIPES[pipe]({src: $('#t-src').value.trim(), topic: $('#t-topic').value.trim()});
+}
+async function copyPrompt() {
+  const text = $('#t-prompt').textContent;
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  toast('已复制——贴进 Cursor / Claude Code 执行');
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._h); toast._h = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ── 顶级导航:项目 / 模型 ──
+let mode = 'project';
+function switchMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-nav button').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+  if (m === 'project') {
+    $('#tabs').style.display = detail ? 'flex' : 'none';
+    detail ? render(tab) : ($('#content').innerHTML = '<div class="empty">← 选择一个项目</div>');
+  } else {
+    $('#tabs').style.display = 'none';
+    rModels();
+  }
+}
+
+// ── 本地服务(配音台/模型后端) ──
+async function ensureService(silent) {
+  const st = await invoke('svc_status');
+  if (st.healthy) return true;
+  if (!st.bin_ok) { toast('找不到 hotvideocopy-web,先在仓库跑 uv pip install -e .'); return false; }
+  if (!silent) toast('正在启动本地服务…');
+  try { await invoke('svc_start'); return true; }
+  catch (e) { toast('本地服务启动失败:' + e); return false; }
+}
+async function openVoice() {
+  if (!(await ensureService())) return;
+  try { await invoke('open_voice_window'); } catch (e) { toast(String(e)); }
+}
+
+// ── 模型管理页 ──
+const GB = n => (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+let installJob = null;
+async function rModels() {
+  $('#content').innerHTML = '<div class="empty">连接本地服务…</div>';
+  if (!(await ensureService(true))) {
+    $('#content').innerHTML = `<div class="empty">本地服务未运行——需要仓库里已安装 hotvideocopy-web<br><br>
+      <button class="btn" onclick="rModels()">重试启动</button></div>`;
+    return;
+  }
+  let st;
+  try { st = await invoke('web_get', {path: '/api/local-models'}); }
+  catch (e) { $('#content').innerHTML = `<div class="empty">读取模型状态失败:${esc(String(e))}</div>`; return; }
+  const hw = st.hardware || {};
+  const models = st.models || [];
+  const runtimes = st.runtimes || {};
+  $('#content').innerHTML = `
+    <div class="mcards">
+      <div class="mcard"><h3><span class="dot on"></span>本地服务</h3>
+        <div class="rows">
+          <div><span>端口</span><b>127.0.0.1:8765</b></div>
+          <div><span>模型根目录</span><b style="word-break:break-all">${esc(st.root || '')}</b></div>
+          <div><span>调度</span><b>跨进程独占队列</b></div>
+          <div><span>保留策略</span><b>永久保留,仅显式清理</b></div>
+        </div>
+        <div class="foot">
+          <button class="btn" onclick="openVoice()">打开配音工作台</button>
+          <button class="btn" onclick="invoke('svc_stop').then(()=>toast('已停止'))">停止服务</button>
+        </div></div>
+      <div class="mcard"><h3><span class="dot ${hw.apple_silicon ? 'on' : ''}"></span>硬件与磁盘</h3>
+        <div class="rows">
+          <div><span>平台</span><b>${esc(String(hw.platform || '').slice(0, 34))}</b></div>
+          <div><span>Apple Silicon</span><b>${hw.apple_silicon ? '是' : '否'}</b></div>
+          <div><span>磁盘可用</span><b>${GB(hw.disk_free || 0)} / ${GB(hw.disk_total || 0)}</b></div>
+          <div><span>模型已占用</span><b>${GB(st.disk_bytes || 0)}</b></div>
+        </div>
+        <div class="rows" style="margin-top:6px">${Object.entries(runtimes).map(([n, r]) =>
+          `<div><span>运行环境 ${esc(n)}</span><b>${r.installed ? '已装 · ' + GB(r.bytes || 0) : '未装'}</b></div>`).join('')}
+        </div></div>
+      ${models.map(m => {
+        const key = `${m.component}:${m.variant || ''}`;
+        const busy = installJob && installJob.key === key;
+        return `<div class="mcard"><h3><span class="dot ${m.installed ? 'on' : ''}"></span>${esc(m.id || key)}</h3>
+        <div class="rows">
+          <div><span>组件</span><b>${esc(m.component)}${m.variant ? ' · ' + esc(m.variant) : ''}</b></div>
+          <div><span>运行时</span><b>${esc(m.runtime || '-')}</b></div>
+          <div><span>已占用</span><b>${GB(m.cache_bytes || 0)}</b></div>
+        </div>
+        <div class="foot">
+          ${(m.capabilities || []).slice(0, 4).map(c => `<span class="tagchip">${esc(c)}</span>`).join('')}
+        </div>
+        <div class="foot">
+          ${busy ? '<div class="progress"><i></i></div><span class="tagchip">安装中…</span>'
+                 : m.installed ? '<span class="tagchip" style="color:var(--ok);border-color:rgba(47,174,124,.4)">已安装</span>'
+                 : `<button class="btn" onclick="installModel('${esc(m.component)}','${esc(m.variant || '')}')">安装</button>`}
+        </div></div>`;
+      }).join('')}
+    </div>
+    <p style="margin-top:14px;font-size:11px;color:var(--dim)">
+      模型清理不提供界面入口(上游策略:已装模型永久保留,清理需命令行显式确认)。安装期间全局独占队列,同时只跑一个任务。
+    </p>`;
+}
+async function installModel(component, variant) {
+  if (installJob) { toast('已有安装任务在进行'); return; }
+  let r;
+  try { r = await invoke('web_post', {path: '/api/local-models/action', body: {action: 'install', component, variant}}); }
+  catch (e) { toast('发起安装失败:' + e); return; }
+  installJob = {id: r.job.id, key: `${component}:${variant || ''}`};
+  rModels();
+  const poll = setInterval(async () => {
+    let j;
+    try { j = await invoke('web_get', {path: '/api/local-model-job?id=' + installJob.id}); }
+    catch { return; }
+    const status = (j.job || j).status;
+    if (status !== 'running') {
+      clearInterval(poll);
+      toast(status === 'done' ? '模型安装完成' : '安装失败:' + ((j.job || j).error || ''));
+      installJob = null;
+      if (mode === 'models') rModels();
+    }
+  }, 3000);
+}
+
+loadProjects().then(checkConfigured);
+</script>
+</body>
+</html>

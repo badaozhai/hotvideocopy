@@ -119,6 +119,28 @@ ACE-Step 1.5 Turbo 支持无歌词配乐、带歌词歌曲、BPM、调式、拍�
 **没有** dna.json 的读写工具：那是普通文件，用内置 Read/Edit 改。
 **没有** 转码/裁剪工具：直接 Bash ffmpeg。
 
+## 桌面 GUI「写轮眼」
+
+`gui/` 是 Tauri v2 桌面 App(品牌名写轮眼),作为整个工具箱的统一壳:
+
+- **项目**:工作区查看器——分镜墙(缩略图+台词/花字对齐时间轴)、生成素材画廊、
+  工程 JSON、源片/成片播放。抽帧与 MCP 侧共用 `frames/` 缓存。
+- **配音**:一键拉起并托管 `hotvideocopy-web` 子进程(退出随 App 回收,不留孤儿),
+  子窗口打开配音工作台,能力与浏览器版完全一致。
+- **模型**:本地模型管理原生页——硬件/磁盘/`.local_ai` 占用、六套运行环境状态、
+  七个模型卡(Qwen3-TTS 双版/CosyVoice3/IndexTTS/ACE-Step/LatentSync/MuseTalk)
+  的安装与任务进度轮询。遵循上游策略:只装不删,清理走命令行显式确认。
+- **新任务**:选流水线(端到端复刻 / 1:1 复刻 / 仅解构 / 本地配乐 / 口型同步)
+  生成标准指令,复制贴进 Cursor / Claude Code 执行——流水线由 agent 编排,GUI 不假装能跑。
+- **设置**:端点/Key(带连通性测试)与模型选择,写仓库根 `.env`,与 MCP server 同源配置。
+
+```bash
+cp "$(which ffmpeg)" gui/src-tauri/binaries/ffmpeg-aarch64-apple-darwin   # sidecar 按平台命名
+cd gui/src-tauri && cargo build        # 开发版;发行版用 npx @tauri-apps/cli build
+```
+
+另有不打包的轻量版 `hotvideocopy-ui`(Python + 浏览器,只读查看器)。
+
 ## 典型流程
 
 ```

@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "主窗口:自有命令 + 目录选择对话框 + asset 协议读媒体",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:default"]
+}
